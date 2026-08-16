@@ -236,7 +236,7 @@ header h1 {
   overflow: auto;
 }
 .wave-canvas {
-  width: 100%;
+  min-width: 100%;
   background: repeating-linear-gradient(
     90deg,
     transparent 0,
