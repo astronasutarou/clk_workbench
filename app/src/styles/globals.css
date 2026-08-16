@@ -10,6 +10,7 @@
   --red: #b74242;
   --amber: #a16810;
   --wave: #2ca889;
+  --wave-mixed: #c4e7de;
 }
 * {
   box-sizing: border-box;
@@ -293,8 +294,7 @@ header h1 {
   vector-effect: non-scaling-stroke;
 }
 .wave-row .wave-mixed {
-  fill: var(--wave);
-  opacity: 0.28;
+  fill: var(--wave-mixed);
 }
 .sequence table {
   width: 100%;
