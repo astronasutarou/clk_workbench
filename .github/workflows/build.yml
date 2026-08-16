@@ -18,14 +18,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: app/package-lock.json
 
       - name: Install dependencies
+        working-directory: app
         run: npm ci
 
       - name: Check source formatting
+        working-directory: app
         run: npm run format:check
 
       - name: Build static site
+        working-directory: app
         run: npm run build
         env:
           BASE_PATH: /clk_workbench/
