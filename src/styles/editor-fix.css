@@ -302,8 +302,6 @@
 .zoom-selection {
   position: absolute;
   z-index: 4;
-  top: 0;
-  bottom: 13px;
   min-width: 1px;
   border: 1px solid #168b70;
   background: rgba(44, 168, 137, .18);
