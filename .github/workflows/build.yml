@@ -28,6 +28,10 @@ jobs:
         working-directory: app
         run: npm run format:check
 
+      - name: Test waveform geometry
+        working-directory: app
+        run: npm test
+
       - name: Build static site
         working-directory: app
         run: npm run build
