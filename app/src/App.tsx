@@ -18,13 +18,19 @@ import {
 } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
-$COUNT    9
+$COUNT    99
 $COUNTER  0x20
+$FLAG     0x01
 
 load $COUNTER $COUNT
-@LOOP outp &PAT_SP1
-      cjmp $COUNTER @LOOP
-      halt
+@LOOP_SP1 outp &PAT_SP1
+          bjmp $FLAG @LOOP_SP2
+          cjmp $COUNTER @LOOP_SP1
+          halt
+
+@LOOP_SP2 outp &PAT_SP2
+          cjmp $COUNTER @LOOP_SP2
+          halt
 
 START_BIT_DATA
 &PAT_SP1 bit  18  00000000000000000000000000000000
@@ -32,6 +38,11 @@ START_BIT_DATA
          bit   4  00000000000000000000000000010100
          bit   4  00000000000000000000000000000100
          bit  18  00000000000000000000000000000000
+         endb
+
+&PAT_SP2 bit   2  00000000000000000000000000000000
+         bit   4  00000000000000000000000000010100
+         bit   2  00000000000000000000000000000000
          endb`;
 
 const WAVE_LABEL_WIDTH = 82;
