@@ -18,7 +18,7 @@ import {
 } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
-$COUNT    99
+$COUNT    29
 $COUNTER  0x20
 $FLAG     0x01
 
