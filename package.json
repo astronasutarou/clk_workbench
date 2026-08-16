@@ -10,7 +10,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "npm run build"
+    "test": "npm run build",
+    "format": "prettier src --write",
+    "format:check": "prettier src --check"
   },
   "dependencies": {
     "react": "19.2.6",
@@ -22,6 +24,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "prettier": "3.6.2",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vite": "8.0.13"

@@ -52,6 +52,20 @@ BASE_PATH=/clk_workbench/ npm run build
 npm test
 ```
 
+## Formatting
+
+Format the source files:
+
+```bash
+npm run format
+```
+
+Check formatting without modifying files:
+
+```bash
+npm run format:check
+```
+
 ## GitHub Pages
 
 After the repository becomes public, enable GitHub Pages with **GitHub Actions** as its source and run the **Deploy GitHub Pages** workflow. Subsequent workflow runs build the application with `/clk_workbench/` as its base path and deploy the generated `site/` directory.

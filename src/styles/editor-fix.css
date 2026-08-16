@@ -36,13 +36,17 @@
   border-radius: 4px;
   background: #fff;
   color: var(--ink);
-  font: 10px ui-monospace, monospace;
+  font:
+    10px ui-monospace,
+    monospace;
 }
 
 .zoom output {
   display: inline;
   color: var(--ink);
-  font: 9px ui-monospace, monospace;
+  font:
+    9px ui-monospace,
+    monospace;
 }
 
 .zoom .tick-count {
@@ -90,8 +94,10 @@
   border-right: 1px solid #d9dfdd;
   background: #edf7f3;
   color: #357060;
-  font: 9px ui-monospace, monospace;
-  letter-spacing: .06em;
+  font:
+    9px ui-monospace,
+    monospace;
+  letter-spacing: 0.06em;
 }
 
 .event-track {
@@ -143,7 +149,7 @@
   border: 1px solid #bfcac7;
   border-radius: 5px;
   background: #fff;
-  box-shadow: 0 8px 24px rgba(19, 42, 56, .18);
+  box-shadow: 0 8px 24px rgba(19, 42, 56, 0.18);
   cursor: default;
 }
 
@@ -160,7 +166,9 @@
   justify-content: space-between;
   margin-bottom: 7px;
   color: #33434a;
-  font: 10px ui-monospace, monospace;
+  font:
+    10px ui-monospace,
+    monospace;
 }
 
 .event-editor label small {
@@ -174,19 +182,21 @@
   border: 1px solid var(--line);
   border-radius: 4px;
   outline: 0;
-  font: 10px ui-monospace, monospace;
+  font:
+    10px ui-monospace,
+    monospace;
 }
 
 .event-editor input:focus {
   border-color: #168b70;
-  box-shadow: 0 0 0 2px rgba(22, 139, 112, .12);
+  box-shadow: 0 0 0 2px rgba(22, 139, 112, 0.12);
 }
 
 .event-editor input.invalid,
 .event-editor input.invalid:focus {
   border-color: var(--red);
   background: #fff7f7;
-  box-shadow: 0 0 0 2px rgba(183, 66, 66, .14);
+  box-shadow: 0 0 0 2px rgba(183, 66, 66, 0.14);
 }
 
 .event-editor p {
@@ -271,7 +281,7 @@
 
 .zoom button:disabled {
   cursor: default;
-  opacity: .38;
+  opacity: 0.38;
 }
 
 .zoom .fit-width {
@@ -304,6 +314,6 @@
   z-index: 4;
   min-width: 1px;
   border: 1px solid #168b70;
-  background: rgba(44, 168, 137, .18);
+  background: rgba(44, 168, 137, 0.18);
   pointer-events: none;
 }
