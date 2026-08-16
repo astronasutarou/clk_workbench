@@ -13,12 +13,8 @@ import {
   BitRun,
   buildBitRuns,
   buildWaveformGeometry,
-  getVirtualScrollWidth,
   getWaveformChunks,
   getWaveformRenderRange,
-  scrollLeftToViewStart,
-  tickToViewportRatio,
-  viewStartToScrollLeft,
 } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
@@ -46,8 +42,6 @@ type WaveformChunkProps = {
   end: number;
   total: number;
   resolution: number;
-  viewStart: number;
-  viewSpan: number;
 };
 
 const WaveformChunk = memo(function WaveformChunk({
@@ -56,8 +50,6 @@ const WaveformChunk = memo(function WaveformChunk({
   end,
   total,
   resolution,
-  viewStart,
-  viewSpan,
 }: WaveformChunkProps) {
   const renderRange = getWaveformRenderRange(
       { start, end },
@@ -76,8 +68,8 @@ const WaveformChunk = memo(function WaveformChunk({
       viewBox="0 0 1000 36"
       preserveAspectRatio="none"
       style={{
-        left: `${tickToViewportRatio(renderStart, viewStart, viewSpan) * 100}%`,
-        width: `${((renderEnd - renderStart) / viewSpan) * 100}%`,
+        left: `${(renderStart / total) * 100}%`,
+        width: `${((renderEnd - renderStart) / total) * 100}%`,
       }}
     >
       <path d={geometry.path} />
@@ -144,7 +136,7 @@ export default function App() {
     [selection, setSelection] = useState<{
       start: number;
       current: number;
-      viewStart: number;
+      scrollLeft: number;
       scrollTop: number;
       viewportHeight: number;
     } | null>(null),
@@ -177,12 +169,6 @@ export default function App() {
       return bits.length ? bits : Array.from({ length: 8 }, (_, i) => 7 - i);
     }, [displaySegments]);
   const rulerStep = Math.max(1, Math.round(effectiveSpan / 10)),
-    waveViewportWidth = waveTrackWidth + WAVE_LABEL_WIDTH,
-    virtualScrollWidth = getVirtualScrollWidth(
-      total,
-      effectiveSpan,
-      waveViewportWidth,
-    ),
     bitRuns = useMemo(
       () =>
         new Map(
@@ -229,12 +215,11 @@ export default function App() {
     ).length,
     warnings = result.diagnostics.length - errors;
   const visibleStartFor = (el: HTMLDivElement) => {
-    return scrollLeftToViewStart(
-      el.scrollLeft,
-      el.scrollWidth,
-      el.clientWidth,
-      total,
-      effectiveSpan,
+    const maxStart = Math.max(0, total - effectiveSpan);
+    if (!maxStart) return 0;
+    return Math.min(
+      maxStart,
+      Math.max(0, (el.scrollLeft * total) / el.scrollWidth),
     );
   };
   const setVisibleSpan = (next: number, start?: number) => {
@@ -263,20 +248,11 @@ export default function App() {
       pendingStart.current = null;
       return;
     }
-    const desiredStart = Math.min(
-      total - effectiveSpan,
-      Math.max(0, start ?? viewStart),
-    );
-    el.scrollLeft = viewStartToScrollLeft(
-      desiredStart,
-      el.scrollWidth,
-      el.clientWidth,
-      total,
-      effectiveSpan,
-    );
-    if (desiredStart !== viewStart) setViewStart(desiredStart);
+    if (start === null) return;
+    el.scrollLeft = (start * el.scrollWidth) / total;
+    setViewStart(start);
     pendingStart.current = null;
-  }, [effectiveSpan, total, waveTrackWidth]);
+  }, [effectiveSpan, total]);
   useLayoutEffect(() => {
     if (tab !== "wave") return;
     const el = waveScroll.current;
@@ -295,14 +271,14 @@ export default function App() {
       el = waveScroll.current;
     if (!el) return;
     const rect = el.getBoundingClientRect(),
-      x = e.clientX - rect.left - WAVE_LABEL_WIDTH,
+      x = e.clientX - rect.left,
       y = e.clientY - rect.top;
-    if (x < 0 || x >= waveTrackWidth || y < 0 || y >= el.clientHeight) return;
+    if (x < 0 || x >= el.clientWidth || y < 0 || y >= el.clientHeight) return;
     canvas.setPointerCapture(e.pointerId);
     setSelection({
       start: x,
       current: x,
-      viewStart: visibleStartFor(el),
+      scrollLeft: el.scrollLeft,
       scrollTop: el.scrollTop,
       viewportHeight: el.clientHeight,
     });
@@ -314,10 +290,7 @@ export default function App() {
     const rect = el.getBoundingClientRect();
     setSelection({
       ...selection,
-      current: Math.max(
-        0,
-        Math.min(waveTrackWidth, e.clientX - rect.left - WAVE_LABEL_WIDTH),
-      ),
+      current: Math.max(0, Math.min(el.clientWidth, e.clientX - rect.left)),
     });
   };
   const selectEnd = () => {
@@ -331,8 +304,12 @@ export default function App() {
     setSelection(null);
     if (width < 8) return;
     const left = Math.min(selection.start, selection.current),
-      rawStart = selection.viewStart + (left / waveTrackWidth) * effectiveSpan,
-      rawSpan = (width / waveTrackWidth) * effectiveSpan,
+      visibleStart = Math.min(
+        Math.max(0, total - effectiveSpan),
+        Math.max(0, (selection.scrollLeft * total) / el.scrollWidth),
+      ),
+      rawStart = visibleStart + (left / el.clientWidth) * effectiveSpan,
+      rawSpan = (width / el.clientWidth) * effectiveSpan,
       nextSpan = Math.max(minSpan, Math.min(total, rawSpan)),
       center = rawStart + rawSpan / 2;
     setVisibleSpan(nextSpan, center - nextSpan / 2);
@@ -352,9 +329,7 @@ export default function App() {
         total - 1,
         Math.max(
           0,
-          Math.floor(
-            viewStart + ((e.clientX - rect.left) / rect.width) * effectiveSpan,
-          ),
+          Math.floor(((e.clientX - rect.left) / rect.width) * total),
         ),
       ),
       instance = instanceForTick(tick),
@@ -391,11 +366,6 @@ export default function App() {
     );
     setEventDraft(null);
   };
-  const viewportRatioForTick = (tick: number) =>
-      tickToViewportRatio(tick, viewStart, effectiveSpan),
-    eventDraftRatio = eventDraft
-      ? viewportRatioForTick(eventDraft.tick)
-      : null;
   return (
     <main>
       <header>
@@ -574,183 +544,165 @@ export default function App() {
               }}
             >
               <div
-                className="wave-scroll-space"
-                style={{ width: virtualScrollWidth }}
+                className="wave-canvas"
+                style={{
+                  width: effectiveSpan
+                    ? `${(total / effectiveSpan) * 100}%`
+                    : "100%",
+                }}
+                onPointerDown={selectStart}
+                onPointerMove={selectMove}
+                onPointerUp={selectEnd}
+                onPointerCancel={() => setSelection(null)}
               >
-                <div
-                  className="wave-viewport"
-                  style={{ width: waveViewportWidth }}
-                >
+                <div className="event-line">
+                  <b>EVENT</b>
                   <div
-                    className="wave-canvas"
-                    onPointerDown={selectStart}
-                    onPointerMove={selectMove}
-                    onPointerUp={selectEnd}
-                    onPointerCancel={() => setSelection(null)}
+                    className="event-track"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={openEvent}
                   >
-                    <div className="event-line">
-                      <b>EVENT</b>
-                      <div
-                        className="event-track"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={openEvent}
-                      >
-                        <div className="event-pins">
-                          {events
-                            .filter(
-                              (event) =>
-                                viewportRatioForTick(event.tick) >= 0 &&
-                                viewportRatioForTick(event.tick) <= 1,
-                            )
-                            .map((event) => (
-                              <button
-                                key={event.instance}
-                                className="event-pin"
-                                style={{
-                                  left: `${viewportRatioForTick(event.tick) * 100}%`,
-                                }}
-                                aria-label={`Edit event at tick ${event.tick}`}
-                                title={event.command}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEventDraft({ ...event, error: "" });
-                                }}
-                              />
-                            ))}
-                        </div>
-                        {eventDraft &&
-                          eventDraftRatio !== null &&
-                          eventDraftRatio >= 0 &&
-                          eventDraftRatio <= 1 && (
-                            <form
-                              className={`event-editor ${eventDraftRatio < 0.25 ? "align-left" : eventDraftRatio > 0.75 ? "align-right" : ""}`}
-                              style={{
-                                left: `${eventDraftRatio * 100}%`,
-                              }}
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => e.stopPropagation()}
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                saveEvent();
-                              }}
-                            >
-                              <label>
-                                Event at tick {eventDraft.tick}
-                                <small>
-                                  after outp #{eventDraft.instance + 1}
-                                </small>
-                              </label>
-                              <input
-                                autoFocus
-                                className={
-                                  eventDraft.error ? "invalid" : undefined
-                                }
-                                aria-invalid={Boolean(eventDraft.error)}
-                                aria-label="Event command"
-                                value={eventDraft.command}
-                                placeholder="load $COUNTER 0x10"
-                                onChange={(e) =>
-                                  setEventDraft({
-                                    ...eventDraft,
-                                    command: e.target.value,
-                                    error: "",
-                                  })
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Escape") setEventDraft(null);
-                                }}
-                              />
-                              {eventDraft.error && <p>{eventDraft.error}</p>}
-                              <div>
-                                {events.some(
-                                  (event) =>
-                                    event.instance === eventDraft.instance,
-                                ) && (
-                                  <button
-                                    type="button"
-                                    className="delete"
-                                    onClick={deleteEvent}
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                                <span />
-                                <button
-                                  type="button"
-                                  onClick={() => setEventDraft(null)}
-                                >
-                                  Cancel
-                                </button>
-                                <button type="submit" className="save">
-                                  Save
-                                </button>
-                              </div>
-                            </form>
-                          )}
-                      </div>
+                    <div className="event-pins">
+                      {events.map((event) => (
+                        <button
+                          key={event.instance}
+                          className="event-pin"
+                          style={{ left: `${(event.tick / total) * 100}%` }}
+                          aria-label={`Edit event at tick ${event.tick}`}
+                          title={event.command}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEventDraft({ ...event, error: "" });
+                          }}
+                        />
+                      ))}
                     </div>
-                    <div className="ruler">
-                      <div className="ruler-track">
-                        {rulerTicks.map((tick) => (
-                          <span
-                            key={tick}
-                            className={
-                              (tick - viewStart) / effectiveSpan < 0.001
-                                ? "edge-start"
-                                : tick === total ||
-                                    (tick - viewStart) / effectiveSpan > 0.999
-                                  ? "edge-end"
-                                  : undefined
-                            }
-                            style={{
-                              left: `${viewportRatioForTick(tick) * 100}%`,
-                            }}
+                    {eventDraft && (
+                      <form
+                        className={`event-editor ${eventDraft.tick / total < 0.25 ? "align-left" : eventDraft.tick / total > 0.75 ? "align-right" : ""}`}
+                        style={{ left: `${(eventDraft.tick / total) * 100}%` }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          saveEvent();
+                        }}
+                      >
+                        <label>
+                          Event at tick {eventDraft.tick}
+                          <small>after outp #{eventDraft.instance + 1}</small>
+                        </label>
+                        <input
+                          autoFocus
+                          className={eventDraft.error ? "invalid" : undefined}
+                          aria-invalid={Boolean(eventDraft.error)}
+                          aria-label="Event command"
+                          value={eventDraft.command}
+                          placeholder="load $COUNTER 0x10"
+                          onChange={(e) =>
+                            setEventDraft({
+                              ...eventDraft,
+                              command: e.target.value,
+                              error: "",
+                            })
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setEventDraft(null);
+                          }}
+                        />
+                        {eventDraft.error && <p>{eventDraft.error}</p>}
+                        <div>
+                          {events.some(
+                            (event) => event.instance === eventDraft.instance,
+                          ) && (
+                            <button
+                              type="button"
+                              className="delete"
+                              onClick={deleteEvent}
+                            >
+                              Delete
+                            </button>
+                          )}
+                          <span />
+                          <button
+                            type="button"
+                            onClick={() => setEventDraft(null)}
                           >
-                            {tick}
-                          </span>
+                            Cancel
+                          </button>
+                          <button type="submit" className="save">
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="ruler"
+                  style={{
+                    width: total
+                      ? `${(effectiveSpan / total) * 100}%`
+                      : "100%",
+                  }}
+                >
+                  <div className="ruler-track">
+                    {rulerTicks.map((tick) => (
+                      <span
+                        key={tick}
+                        className={
+                          (tick - viewStart) / effectiveSpan < 0.001
+                            ? "edge-start"
+                            : tick === total ||
+                                (tick - viewStart) / effectiveSpan > 0.999
+                              ? "edge-end"
+                              : undefined
+                        }
+                        style={{
+                          left: `${((tick - viewStart) / effectiveSpan) * 100}%`,
+                        }}
+                      >
+                        {tick}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {total > 0 ? (
+                  activeBits.map((bit) => (
+                    <div className="wave-row" key={bit}>
+                      <b>BIT {String(bit).padStart(2, "0")}</b>
+                      <div className="wave-track">
+                        {waveformChunks.map((chunk) => (
+                          <WaveformChunk
+                            key={chunk.index}
+                            runs={bitRuns.get(bit) ?? []}
+                            start={chunk.start}
+                            end={chunk.end}
+                            total={total}
+                            resolution={waveformResolution}
+                          />
                         ))}
                       </div>
                     </div>
-                    {total > 0 ? (
-                      activeBits.map((bit) => (
-                        <div className="wave-row" key={bit}>
-                          <b>BIT {String(bit).padStart(2, "0")}</b>
-                          <div className="wave-track">
-                            {waveformChunks.map((chunk) => (
-                              <WaveformChunk
-                                key={chunk.index}
-                                runs={bitRuns.get(bit) ?? []}
-                                start={chunk.start}
-                                end={chunk.end}
-                                total={total}
-                                resolution={waveformResolution}
-                                viewStart={viewStart}
-                                viewSpan={effectiveSpan}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="empty">No output sequence</div>
-                    )}
-                  </div>
-                  {selection && (
-                    <div
-                      className="zoom-selection"
-                      style={{
-                        left:
-                          WAVE_LABEL_WIDTH +
-                          Math.min(selection.start, selection.current),
-                        top: selection.scrollTop,
-                        width: Math.abs(selection.current - selection.start),
-                        height: selection.viewportHeight,
-                      }}
-                    />
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <div className="empty">No output sequence</div>
+                )}
               </div>
+              {selection && (
+                <div
+                  className="zoom-selection"
+                  style={{
+                    left:
+                      selection.scrollLeft +
+                      Math.min(selection.start, selection.current),
+                    top: selection.scrollTop,
+                    width: Math.abs(selection.current - selection.start),
+                    height: selection.viewportHeight,
+                  }}
+                />
+              )}
             </div>
           ) : (
             <div className="sequence">

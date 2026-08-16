@@ -4,13 +4,8 @@ import type { Segment } from "./clk";
 import {
   buildBitRuns,
   buildWaveformGeometry,
-  getVirtualScrollWidth,
   getWaveformChunks,
   getWaveformRenderRange,
-  MAX_VIRTUAL_SCROLL_WIDTH,
-  scrollLeftToViewStart,
-  tickToViewportRatio,
-  viewStartToScrollLeft,
 } from "./waveform.ts";
 
 function segment(word: number, duration: number, instance: number): Segment {
@@ -88,81 +83,4 @@ test("chunk render overlap stays inside the complete timeline", () => {
     start: 79,
     end: 100,
   });
-});
-
-test("virtual scroll width stays below browser layout limits", () => {
-  assert.equal(getVirtualScrollWidth(480, 480, 800), 800);
-  assert.equal(getVirtualScrollWidth(480, 120, 800), 3200);
-  assert.equal(
-    getVirtualScrollWidth(101_000_000, 20, 800),
-    MAX_VIRTUAL_SCROLL_WIDTH,
-  );
-});
-
-test("virtual scroll positions preserve logical timeline endpoints", () => {
-  const total = 101_000_000;
-  const viewSpan = 20;
-  const viewportWidth = 800;
-  const scrollWidth = getVirtualScrollWidth(total, viewSpan, viewportWidth);
-  const maxStart = total - viewSpan;
-
-  assert.equal(
-    viewStartToScrollLeft(0, scrollWidth, viewportWidth, total, viewSpan),
-    0,
-  );
-  assert.equal(
-    viewStartToScrollLeft(
-      maxStart,
-      scrollWidth,
-      viewportWidth,
-      total,
-      viewSpan,
-    ),
-    scrollWidth - viewportWidth,
-  );
-  assert.equal(
-    scrollLeftToViewStart(
-      scrollWidth - viewportWidth,
-      scrollWidth,
-      viewportWidth,
-      total,
-      viewSpan,
-    ),
-    maxStart,
-  );
-});
-
-test("virtual scroll conversion round-trips a logical position", () => {
-  const total = 101_000_000;
-  const viewSpan = 69;
-  const viewportWidth = 832;
-  const scrollWidth = getVirtualScrollWidth(total, viewSpan, viewportWidth);
-  const viewStart = 31_717_163;
-  const scrollLeft = viewStartToScrollLeft(
-    viewStart,
-    scrollWidth,
-    viewportWidth,
-    total,
-    viewSpan,
-  );
-
-  assert.ok(scrollWidth <= MAX_VIRTUAL_SCROLL_WIDTH);
-  assert.ok(
-    Math.abs(
-      scrollLeftToViewStart(
-        scrollLeft,
-        scrollWidth,
-        viewportWidth,
-        total,
-        viewSpan,
-      ) - viewStart,
-    ) < 1e-7,
-  );
-});
-
-test("ticks map into viewport-local coordinates", () => {
-  assert.equal(tickToViewportRatio(100, 100, 20), 0);
-  assert.equal(tickToViewportRatio(110, 100, 20), 0.5);
-  assert.equal(tickToViewportRatio(120, 100, 20), 1);
-  assert.equal(tickToViewportRatio(90, 100, 20), -0.5);
 });

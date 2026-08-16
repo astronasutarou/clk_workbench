@@ -25,64 +25,6 @@ export type WaveformChunk = TickRange & {
 const CHUNKS_PER_VIEW = 5;
 const OVERSCAN_VIEWS = 0.5;
 const WAVEFORM_EDGE_OVERLAP_PX = 0.5;
-export const MAX_VIRTUAL_SCROLL_WIDTH = 8_000_000;
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-export function getVirtualScrollWidth(
-  total: number,
-  viewSpan: number,
-  viewportWidth: number,
-): number {
-  if (viewportWidth <= 0 || total <= 0 || viewSpan <= 0) {
-    return Math.max(0, viewportWidth);
-  }
-
-  const naturalWidth = viewportWidth * (total / viewSpan);
-  return Math.max(
-    viewportWidth,
-    Math.min(MAX_VIRTUAL_SCROLL_WIDTH, naturalWidth),
-  );
-}
-
-export function scrollLeftToViewStart(
-  scrollLeft: number,
-  scrollWidth: number,
-  viewportWidth: number,
-  total: number,
-  viewSpan: number,
-): number {
-  const maxScrollLeft = Math.max(0, scrollWidth - viewportWidth);
-  const maxViewStart = Math.max(0, total - viewSpan);
-  if (!maxScrollLeft || !maxViewStart) return 0;
-
-  return (clamp(scrollLeft, 0, maxScrollLeft) / maxScrollLeft) * maxViewStart;
-}
-
-export function viewStartToScrollLeft(
-  viewStart: number,
-  scrollWidth: number,
-  viewportWidth: number,
-  total: number,
-  viewSpan: number,
-): number {
-  const maxScrollLeft = Math.max(0, scrollWidth - viewportWidth);
-  const maxViewStart = Math.max(0, total - viewSpan);
-  if (!maxScrollLeft || !maxViewStart) return 0;
-
-  return (clamp(viewStart, 0, maxViewStart) / maxViewStart) * maxScrollLeft;
-}
-
-export function tickToViewportRatio(
-  tick: number,
-  viewStart: number,
-  viewSpan: number,
-): number {
-  if (viewSpan <= 0) return 0;
-  return (tick - viewStart) / viewSpan;
-}
 
 export function getWaveformChunks(
   total: number,

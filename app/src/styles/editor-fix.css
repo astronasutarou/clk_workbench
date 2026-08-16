@@ -313,17 +313,6 @@
   cursor: crosshair;
 }
 
-.wave-scroll-space {
-  min-width: 100%;
-  min-height: 100%;
-}
-
-.wave-viewport {
-  position: sticky;
-  left: 0;
-  min-width: 100%;
-}
-
 .wave-scroll.selecting {
   user-select: none;
 }
