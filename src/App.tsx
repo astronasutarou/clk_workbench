@@ -154,11 +154,19 @@ export default function App() {
       (d) => d.severity === "error",
     ).length,
     warnings = result.diagnostics.length - errors;
+  const visibleStartFor = (el: HTMLDivElement) => {
+    const maxStart = Math.max(0, total - effectiveSpan);
+    if (!maxStart) return 0;
+    return Math.min(
+      maxStart,
+      Math.max(0, (el.scrollLeft * total) / el.scrollWidth),
+    );
+  };
   const setVisibleSpan = (next: number, start?: number) => {
     if (!total) return;
     const span = Math.min(total, Math.max(minSpan, Math.round(next)));
     const el = waveScroll.current,
-      currentStart = el ? (el.scrollLeft * total) / el.scrollWidth : 0;
+      currentStart = el ? visibleStartFor(el) : 0;
     const desired =
       start ?? Math.max(0, currentStart + (effectiveSpan - span) / 2);
     pendingStart.current = Math.min(total - span, Math.max(0, desired));
@@ -173,7 +181,14 @@ export default function App() {
   useLayoutEffect(() => {
     const el = waveScroll.current,
       start = pendingStart.current;
-    if (!el || start === null || !total) return;
+    if (!el || !total) return;
+    if (effectiveSpan === total) {
+      el.scrollLeft = 0;
+      setViewStart(0);
+      pendingStart.current = null;
+      return;
+    }
+    if (start === null) return;
     el.scrollLeft = (start * el.scrollWidth) / total;
     setViewStart(start);
     pendingStart.current = null;
@@ -209,7 +224,10 @@ export default function App() {
     setSelection(null);
     if (width < 8) return;
     const left = Math.min(selection.start, selection.current),
-      visibleStart = (selection.scrollLeft * total) / el.scrollWidth,
+      visibleStart = Math.min(
+        Math.max(0, total - effectiveSpan),
+        Math.max(0, (selection.scrollLeft * total) / el.scrollWidth),
+      ),
       rawStart = visibleStart + (left / el.clientWidth) * effectiveSpan,
       rawSpan = (width / el.clientWidth) * effectiveSpan,
       nextSpan = Math.max(minSpan, Math.min(total, rawSpan)),
@@ -433,9 +451,7 @@ export default function App() {
               className={selection ? "wave-scroll selecting" : "wave-scroll"}
               onScroll={(e) => {
                 const el = e.currentTarget;
-                setViewStart(
-                  total ? (el.scrollLeft * total) / el.scrollWidth : 0,
-                );
+                setViewStart(total ? visibleStartFor(el) : 0);
                 setSelection((current) =>
                   current
                     ? {
@@ -466,20 +482,22 @@ export default function App() {
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={openEvent}
                   >
-                    {events.map((event) => (
-                      <button
-                        key={event.instance}
-                        className="event-pin"
-                        style={{ left: `${(event.tick / total) * 100}%` }}
-                        aria-label={`Edit event at tick ${event.tick}`}
-                        title={event.command}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEventDraft({ ...event, error: "" });
-                        }}
-                      />
-                    ))}
+                    <div className="event-pins">
+                      {events.map((event) => (
+                        <button
+                          key={event.instance}
+                          className="event-pin"
+                          style={{ left: `${(event.tick / total) * 100}%` }}
+                          aria-label={`Edit event at tick ${event.tick}`}
+                          title={event.command}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEventDraft({ ...event, error: "" });
+                          }}
+                        />
+                      ))}
+                    </div>
                     {eventDraft && (
                       <form
                         className={`event-editor ${eventDraft.tick / total < 0.25 ? "align-left" : eventDraft.tick / total > 0.75 ? "align-right" : ""}`}
@@ -556,7 +574,8 @@ export default function App() {
                         className={
                           (tick - viewStart) / effectiveSpan < 0.001
                             ? "edge-start"
-                            : (tick - viewStart) / effectiveSpan > 0.999
+                            : tick === total ||
+                                (tick - viewStart) / effectiveSpan > 0.999
                               ? "edge-end"
                               : undefined
                         }

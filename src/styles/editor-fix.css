@@ -105,6 +105,13 @@
   cursor: crosshair;
 }
 
+.event-pins {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+
 .event-pin {
   position: absolute;
   top: 6px;
@@ -114,6 +121,7 @@
   transform: translateX(-50%);
   border: 0;
   background: transparent;
+  pointer-events: auto;
 }
 
 .event-pin::before {
