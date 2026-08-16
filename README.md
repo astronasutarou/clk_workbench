@@ -13,9 +13,11 @@ Clock Definition Workbench parses and executes CLK definition files and displays
 
 ## Project layout
 
-- `src/`: application source code
-- `public/`: static assets copied into the build
+- `app/`: self-contained Vite project root
+- `app/src/`: React application source code
+- `app/public/`: static assets copied into the build
 - `site/`: generated static website for GitHub Pages
+- `.github/workflows/build.yml`: push-triggered validation build
 - `.github/workflows/pages.yml`: GitHub Pages deployment workflow
 
 The generated `site/` directory is not committed. GitHub Actions builds it and uploads it as the Pages artifact.
@@ -27,6 +29,7 @@ The generated `site/` directory is not committed. GitHub Actions builds it and u
 ## Development
 
 ```bash
+cd app
 npm ci
 npm run dev
 ```
@@ -34,21 +37,24 @@ npm run dev
 ## Build
 
 ```bash
+cd app
 npm ci
 npm run build
 ```
 
-The static website is generated in `site/`.
+The static website is generated in the repository-level `site/` directory.
 
 To build with the GitHub Pages project path locally:
 
 ```bash
+cd app
 BASE_PATH=/clk_workbench/ npm run build
 ```
 
 ## Test
 
 ```bash
+cd app
 npm test
 ```
 
@@ -57,12 +63,14 @@ npm test
 Format the source files:
 
 ```bash
+cd app
 npm run format
 ```
 
 Check formatting without modifying files:
 
 ```bash
+cd app
 npm run format:check
 ```
 

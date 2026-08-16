@@ -1,5 +1,5 @@
-node_modules/
-site/
+/app/node_modules/
+/site/
 .DS_Store
 *.log
 coverage/
