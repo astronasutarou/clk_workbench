@@ -43,7 +43,9 @@ function pathFor(segments: Segment[], bit: number, total: number) {
 }
 
 type AggregatedSegment = Segment & { count: number; first: boolean };
-function aggregateSingleRowPatternRuns(segments: Segment[]): AggregatedSegment[] {
+function aggregateSingleRowPatternRuns(
+  segments: Segment[],
+): AggregatedSegment[] {
   const invocations: { pattern: string; rows: Segment[] }[] = [];
   for (const segment of segments) {
     const last = invocations[invocations.length - 1];
@@ -55,7 +57,12 @@ function aggregateSingleRowPatternRuns(segments: Segment[]): AggregatedSegment[]
   for (const invocation of invocations) {
     const last = runs[runs.length - 1];
     const isSingleRow = invocation.rows.length === 1;
-    if (isSingleRow && last && last.rows.length === 1 && last.pattern === invocation.pattern)
+    if (
+      isSingleRow &&
+      last &&
+      last.rows.length === 1 &&
+      last.pattern === invocation.pattern
+    )
       last.count++;
     else runs.push({ ...invocation, count: 1 });
   }
@@ -86,7 +93,9 @@ export default function App() {
       viewportHeight: number;
     } | null>(null),
     [events, setEvents] = useState<ClockEvent[]>([]),
-    [eventDraft, setEventDraft] = useState<(ClockEvent & { error: string }) | null>(null);
+    [eventDraft, setEventDraft] = useState<
+      (ClockEvent & { error: string }) | null
+    >(null);
   const input = useRef<HTMLInputElement>(null),
     waveScroll = useRef<HTMLDivElement>(null),
     pendingStart = useRef<number | null>(null),
@@ -100,7 +109,9 @@ export default function App() {
   );
   const total = displaySegments.reduce((n, s) => n + s.duration, 0),
     minSpan = Math.min(20, total),
-    effectiveSpan = total ? Math.min(total, Math.max(minSpan, viewSpan ?? total)) : 0,
+    effectiveSpan = total
+      ? Math.min(total, Math.max(minSpan, viewSpan ?? total))
+      : 0,
     activeBits = useMemo(() => {
       let mask = 0;
       displaySegments.forEach((s) => (mask |= s.word));
@@ -115,7 +126,11 @@ export default function App() {
       const end = Math.min(total, viewStart + effectiveSpan),
         first = Math.ceil((viewStart - 1e-7) / rulerStep) * rulerStep,
         ticks: number[] = [];
-      for (let tick = first; tick <= end + 1e-7 && ticks.length < 16; tick += rulerStep)
+      for (
+        let tick = first;
+        tick <= end + 1e-7 && ticks.length < 16;
+        tick += rulerStep
+      )
         ticks.push(tick);
       return ticks;
     }, [total, effectiveSpan, viewStart, rulerStep]);
@@ -135,14 +150,17 @@ export default function App() {
     };
     reader.readAsText(f, "ascii");
   };
-  const errors = result.diagnostics.filter((d) => d.severity === "error").length,
+  const errors = result.diagnostics.filter(
+      (d) => d.severity === "error",
+    ).length,
     warnings = result.diagnostics.length - errors;
   const setVisibleSpan = (next: number, start?: number) => {
     if (!total) return;
     const span = Math.min(total, Math.max(minSpan, Math.round(next)));
     const el = waveScroll.current,
       currentStart = el ? (el.scrollLeft * total) / el.scrollWidth : 0;
-    const desired = start ?? Math.max(0, currentStart + (effectiveSpan - span) / 2);
+    const desired =
+      start ?? Math.max(0, currentStart + (effectiveSpan - span) / 2);
     pendingStart.current = Math.min(total - span, Math.max(0, desired));
     setViewSpan(span);
   };
@@ -211,12 +229,17 @@ export default function App() {
     const rect = e.currentTarget.getBoundingClientRect(),
       tick = Math.min(
         total - 1,
-        Math.max(0, Math.floor(((e.clientX - rect.left) / rect.width) * total)),
+        Math.max(
+          0,
+          Math.floor(((e.clientX - rect.left) / rect.width) * total),
+        ),
       ),
       instance = instanceForTick(tick),
       existing = events.find((event) => event.instance === instance);
     setEventDraft(
-      existing ? { ...existing, error: "" } : { tick, instance, command: "", error: "" },
+      existing
+        ? { ...existing, error: "" }
+        : { tick, instance, command: "", error: "" },
     );
   };
   const saveEvent = () => {
@@ -240,7 +263,9 @@ export default function App() {
   };
   const deleteEvent = () => {
     if (!eventDraft) return;
-    setEvents((current) => current.filter((event) => event.tick < eventDraft.tick));
+    setEvents((current) =>
+      current.filter((event) => event.tick < eventDraft.tick),
+    );
     setEventDraft(null);
   };
   return (
@@ -254,7 +279,12 @@ export default function App() {
           </span>
         </div>
         <div className="actions">
-          <input ref={input} type="file" accept=".clk,.src,.txt" onChange={onFile} />
+          <input
+            ref={input}
+            type="file"
+            accept=".clk,.src,.txt"
+            onChange={onFile}
+          />
           <button onClick={() => input.current?.click()}>Open file</button>
           <button
             onClick={() => {
@@ -296,7 +326,9 @@ export default function App() {
             step="1000"
             value={stepLimit}
             onChange={(e) => {
-              setStepLimit(Math.max(1, Math.min(1000000, Number(e.target.value) || 1)));
+              setStepLimit(
+                Math.max(1, Math.min(1000000, Number(e.target.value) || 1)),
+              );
               clearEvents();
             }}
           />
@@ -344,7 +376,10 @@ export default function App() {
         <article className="output-panel">
           <div className="panel-title">
             <div className="tabs">
-              <button className={tab === "wave" ? "active" : ""} onClick={() => setTab("wave")}>
+              <button
+                className={tab === "wave" ? "active" : ""}
+                onClick={() => setTab("wave")}
+              >
                 Waveform
               </button>
               <button
@@ -365,7 +400,9 @@ export default function App() {
                   −
                 </button>
                 <span className="tick-count">
-                  <output aria-label="Visible tick span">{Math.round(effectiveSpan)}</output>
+                  <output aria-label="Visible tick span">
+                    {Math.round(effectiveSpan)}
+                  </output>
                   <span>ticks</span>
                 </span>
                 <button
@@ -396,10 +433,16 @@ export default function App() {
               className={selection ? "wave-scroll selecting" : "wave-scroll"}
               onScroll={(e) => {
                 const el = e.currentTarget;
-                setViewStart(total ? (el.scrollLeft * total) / el.scrollWidth : 0);
+                setViewStart(
+                  total ? (el.scrollLeft * total) / el.scrollWidth : 0,
+                );
                 setSelection((current) =>
                   current
-                    ? { ...current, scrollTop: el.scrollTop, viewportHeight: el.clientHeight }
+                    ? {
+                        ...current,
+                        scrollTop: el.scrollTop,
+                        viewportHeight: el.clientHeight,
+                      }
                     : current,
                 );
               }}
@@ -410,7 +453,11 @@ export default function App() {
             >
               <div
                 className="wave-canvas"
-                style={{ width: effectiveSpan ? `${(total / effectiveSpan) * 100}%` : "100%" }}
+                style={{
+                  width: effectiveSpan
+                    ? `${(total / effectiveSpan) * 100}%`
+                    : "100%",
+                }}
               >
                 <div className="event-line">
                   <b>EVENT</b>
@@ -456,7 +503,11 @@ export default function App() {
                           value={eventDraft.command}
                           placeholder="load $COUNTER 0x10"
                           onChange={(e) =>
-                            setEventDraft({ ...eventDraft, command: e.target.value, error: "" })
+                            setEventDraft({
+                              ...eventDraft,
+                              command: e.target.value,
+                              error: "",
+                            })
                           }
                           onKeyDown={(e) => {
                             if (e.key === "Escape") setEventDraft(null);
@@ -464,13 +515,22 @@ export default function App() {
                         />
                         {eventDraft.error && <p>{eventDraft.error}</p>}
                         <div>
-                          {events.some((event) => event.instance === eventDraft.instance) && (
-                            <button type="button" className="delete" onClick={deleteEvent}>
+                          {events.some(
+                            (event) => event.instance === eventDraft.instance,
+                          ) && (
+                            <button
+                              type="button"
+                              className="delete"
+                              onClick={deleteEvent}
+                            >
                               Delete
                             </button>
                           )}
                           <span />
-                          <button type="button" onClick={() => setEventDraft(null)}>
+                          <button
+                            type="button"
+                            onClick={() => setEventDraft(null)}
+                          >
                             Cancel
                           </button>
                           <button type="submit" className="save">
@@ -483,7 +543,11 @@ export default function App() {
                 </div>
                 <div
                   className="ruler"
-                  style={{ width: total ? `${(effectiveSpan / total) * 100}%` : "100%" }}
+                  style={{
+                    width: total
+                      ? `${(effectiveSpan / total) * 100}%`
+                      : "100%",
+                  }}
                 >
                   <div className="ruler-track">
                     {rulerTicks.map((tick) => (
@@ -496,7 +560,9 @@ export default function App() {
                               ? "edge-end"
                               : undefined
                         }
-                        style={{ left: `${((tick - viewStart) / effectiveSpan) * 100}%` }}
+                        style={{
+                          left: `${((tick - viewStart) / effectiveSpan) * 100}%`,
+                        }}
                       >
                         {tick}
                       </span>
@@ -520,7 +586,9 @@ export default function App() {
                 <div
                   className="zoom-selection"
                   style={{
-                    left: selection.scrollLeft + Math.min(selection.start, selection.current),
+                    left:
+                      selection.scrollLeft +
+                      Math.min(selection.start, selection.current),
                     top: selection.scrollTop,
                     width: Math.abs(selection.current - selection.start),
                     height: selection.viewportHeight,
@@ -547,7 +615,9 @@ export default function App() {
                         {s.first ? (
                           <>
                             {s.pattern}
-                            {s.count > 1 && <span className="multiple"> (× {s.count})</span>}
+                            {s.count > 1 && (
+                              <span className="multiple"> (× {s.count})</span>
+                            )}
                           </>
                         ) : (
                           ""
@@ -559,7 +629,9 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
-              {!displaySegments.length && <div className="empty">No output sequence</div>}
+              {!displaySegments.length && (
+                <div className="empty">No output sequence</div>
+              )}
             </div>
           )}
         </article>
@@ -568,7 +640,8 @@ export default function App() {
         <div className="diag-head">
           <b>Diagnostics</b>
           <span>
-            {errors} errors · {warnings} warnings · {result.steps.toLocaleString()} steps{" "}
+            {errors} errors · {warnings} warnings ·{" "}
+            {result.steps.toLocaleString()} steps{" "}
             {result.halted ? "· halted" : ""}
           </span>
         </div>

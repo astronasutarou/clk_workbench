@@ -1,5 +1,14 @@
-export type Diagnostic = { line: number; severity: "error" | "warning"; message: string };
-export type Segment = { duration: number; word: number; pattern: string; instance: number };
+export type Diagnostic = {
+  line: number;
+  severity: "error" | "warning";
+  message: string;
+};
+export type Segment = {
+  duration: number;
+  word: number;
+  pattern: string;
+  instance: number;
+};
 type Instruction = { line: number; op: string; args: string[] };
 type Pattern = { line: number; rows: { duration: number; word: number }[] };
 export type Program = {
@@ -17,7 +26,10 @@ export type Result = {
 };
 export type ClockEvent = { tick: number; instance: number; command: string };
 
-const OPS: Record<string, { n: number; k: ("value" | "register" | "label" | "pattern")[] }> = {
+const OPS: Record<
+  string,
+  { n: number; k: ("value" | "register" | "label" | "pattern")[] }
+> = {
   nop: { n: 0, k: [] },
   outp: { n: 1, k: ["pattern"] },
   jump: { n: 1, k: ["label"] },
@@ -31,7 +43,8 @@ const OPS: Record<string, { n: number; k: ("value" | "register" | "label" | "pat
   retn: { n: 1, k: ["register"] },
   halt: { n: 0, k: [] },
 };
-const numberValue = (s: string) => (/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(s) ? Number(s) : NaN);
+const numberValue = (s: string) =>
+  /^(?:0x[0-9a-f]+|[0-9]+)$/i.test(s) ? Number(s) : NaN;
 
 export function compile(
   source: string,
@@ -46,12 +59,19 @@ export function compile(
     instructions: Instruction[] = [];
   const lines = source.split(/\r?\n/);
   let marker = -1,
-    active: { name: string; line: number; rows: { duration: number; word: number }[] } | null =
-      null;
-  const issue = (line: number, message: string, severity: "error" | "warning" = "error") =>
-    diagnostics.push({ line, severity, message });
+    active: {
+      name: string;
+      line: number;
+      rows: { duration: number; word: number }[];
+    } | null = null;
+  const issue = (
+    line: number,
+    message: string,
+    severity: "error" | "warning" = "error",
+  ) => diagnostics.push({ line, severity, message });
   lines.forEach((raw, i) => {
-    if ([...raw].some((c) => c.charCodeAt(0) > 127)) issue(i + 1, "Non-ASCII character found");
+    if ([...raw].some((c) => c.charCodeAt(0) > 127))
+      issue(i + 1, "Non-ASCII character found");
   });
   const clean = lines.map((x) => x.replace(/#.*/, "").trim());
   clean.forEach((line, i) => {
@@ -80,7 +100,10 @@ export function compile(
     if (t[0].startsWith("@")) {
       label = t.shift();
       if (!t.length) {
-        issue(i + 1, "A command label and its instruction must be on the same line");
+        issue(
+          i + 1,
+          "A command label and its instruction must be on the same line",
+        );
         return;
       }
     }
@@ -94,7 +117,10 @@ export function compile(
       else labels.set(label, instructions.length + labelOffset);
     }
     if (t.length !== OPS[op].n)
-      issue(i + 1, `${op} expects ${OPS[op].n} operand${OPS[op].n === 1 ? "" : "s"}`);
+      issue(
+        i + 1,
+        `${op} expects ${OPS[op].n} operand${OPS[op].n === 1 ? "" : "s"}`,
+      );
     instructions.push({ line: i + 1, op, args: t });
   });
   if (marker >= 0)
@@ -111,7 +137,10 @@ export function compile(
         if (patterns.has(name)) issue(lineNo, `Duplicate definition: ${name}`);
         active = { name, line: lineNo, rows: [] };
         if (t.shift() !== "bit") {
-          issue(lineNo, "First pattern row must have the form &NAME bit DURATION BIT_WORD");
+          issue(
+            lineNo,
+            "First pattern row must have the form &NAME bit DURATION BIT_WORD",
+          );
           return;
         }
         addRow(active, t, lineNo, issue);
@@ -145,36 +174,63 @@ export function compile(
     rows: { duration: number; word: number }[];
   } | null;
   if (unfinished) {
-    issue(lines.length, `Pattern ${unfinished.name} is not terminated by endb`);
-    patterns.set(unfinished.name, { line: unfinished.line, rows: unfinished.rows });
+    issue(
+      lines.length,
+      `Pattern ${unfinished.name} is not terminated by endb`,
+    );
+    patterns.set(unfinished.name, {
+      line: unfinished.line,
+      rows: unfinished.rows,
+    });
   }
   instructions.forEach((ins) => {
     const spec = OPS[ins.op];
     ins.args.forEach((arg, x) => {
       const kind = spec.k[x];
-      if (kind === "label" && !labels.has(arg)) issue(ins.line, `Undefined command label: ${arg}`);
-      if (kind === "pattern" && !patterns.has(arg)) issue(ins.line, `Undefined pattern: ${arg}`);
+      if (kind === "label" && !labels.has(arg))
+        issue(ins.line, `Undefined command label: ${arg}`);
+      if (kind === "pattern" && !patterns.has(arg))
+        issue(ins.line, `Undefined pattern: ${arg}`);
       if ((kind === "value" || kind === "register") && !definitions.has(arg))
         issue(ins.line, `Undefined numeric symbol: ${arg}`);
-      if (kind === "register" && definitions.has(arg) && (definitions.get(arg) ?? 0) > 0xfff)
+      if (
+        kind === "register" &&
+        definitions.has(arg) &&
+        (definitions.get(arg) ?? 0) > 0xfff
+      )
         issue(ins.line, `${arg} is outside the register range 0x0000–0x0FFF`);
     });
   });
   if (diagnostics.some((d) => d.severity === "error"))
-    return { diagnostics, program: null, segments: [], steps: 0, halted: false };
+    return {
+      diagnostics,
+      program: null,
+      segments: [],
+      steps: 0,
+      halted: false,
+    };
   const program = { definitions, labels, patterns, instructions },
     eventInstructions = new Map<number, Instruction>();
   events.forEach((event) => {
     const parsed = parseEventCommand(event.command, program);
-    if (typeof parsed === "string") issue(1, `Event at tick ${event.tick}: ${parsed}`);
+    if (typeof parsed === "string")
+      issue(1, `Event at tick ${event.tick}: ${parsed}`);
     else eventInstructions.set(event.instance, parsed);
   });
   if (diagnostics.some((d) => d.severity === "error"))
     return { diagnostics, program, segments: [], steps: 0, halted: false };
-  return execute(program, diagnostics, Math.max(1, Math.floor(stepLimit)), eventInstructions);
+  return execute(
+    program,
+    diagnostics,
+    Math.max(1, Math.floor(stepLimit)),
+    eventInstructions,
+  );
 }
 
-function parseEventCommand(command: string, program: Program): Instruction | string {
+function parseEventCommand(
+  command: string,
+  program: Program,
+): Instruction | string {
   if (/\r|\n/.test(command)) return "Enter exactly one instruction";
   const clean = command.replace(/#.*/, "").trim();
   if (!clean) return "Command is required";
@@ -184,16 +240,22 @@ function parseEventCommand(command: string, program: Program): Instruction | str
   const spec = OPS[op];
   if (!spec) return `Unknown instruction: ${op}`;
   if (op === "outp") return "outp is not allowed in an event";
-  if (t.length !== spec.n) return `${op} expects ${spec.n} operand${spec.n === 1 ? "" : "s"}`;
+  if (t.length !== spec.n)
+    return `${op} expects ${spec.n} operand${spec.n === 1 ? "" : "s"}`;
   for (let i = 0; i < t.length; i++) {
     const arg = t[i],
       kind = spec.k[i];
-    if (kind === "label" && !program.labels.has(arg)) return `Undefined command label: ${arg}`;
+    if (kind === "label" && !program.labels.has(arg))
+      return `Undefined command label: ${arg}`;
     if (kind === "register" && !program.definitions.has(arg))
       return `Undefined numeric symbol: ${arg}`;
     if (kind === "register" && (program.definitions.get(arg) ?? 0) > 0xfff)
       return `${arg} is outside the register range 0x0000–0x0FFF`;
-    if (kind === "value" && !program.definitions.has(arg) && !Number.isInteger(numberValue(arg)))
+    if (
+      kind === "value" &&
+      !program.definitions.has(arg) &&
+      !Number.isInteger(numberValue(arg))
+    )
       return `Undefined value: ${arg}`;
     if (
       kind === "value" &&
@@ -205,7 +267,10 @@ function parseEventCommand(command: string, program: Program): Instruction | str
   return { line: 1, op, args: t };
 }
 
-export function validateEventCommand(command: string, program: Program | null): string | null {
+export function validateEventCommand(
+  command: string,
+  program: Program | null,
+): string | null {
   if (!program) return "A valid CLK program is required";
   const parsed = parseEventCommand(command, program);
   return typeof parsed === "string" ? parsed : null;
@@ -245,7 +310,8 @@ function execute(
     halted = false,
     instance = 0;
   const value = (s: string) => program.definitions.get(s) ?? 0;
-  const eventValue = (s: string) => program.definitions.get(s) ?? numberValue(s);
+  const eventValue = (s: string) =>
+    program.definitions.get(s) ?? numberValue(s);
   const runEvent = (ins: Instruction) => {
     const a = ins.args;
     switch (ins.op) {
@@ -384,7 +450,9 @@ function execute(
   }
   if (!halted)
     diagnostics.push({
-      line: program.instructions[Math.min(p, program.instructions.length - 1)]?.line ?? 1,
+      line:
+        program.instructions[Math.min(p, program.instructions.length - 1)]
+          ?.line ?? 1,
       severity: "warning",
       message:
         steps >= stepLimit
