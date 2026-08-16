@@ -276,9 +276,15 @@ header h1 {
     10px ui-monospace,
     monospace;
 }
-.wave-row svg {
+.wave-track {
+  position: relative;
   height: 36px;
   width: 100%;
+}
+.wave-row .wave-chunk {
+  position: absolute;
+  top: 0;
+  height: 100%;
 }
 .wave-row path {
   fill: none;

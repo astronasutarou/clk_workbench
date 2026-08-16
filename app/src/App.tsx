@@ -2,13 +2,19 @@ import {
   ChangeEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
+  memo,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { ClockEvent, compile, Segment, validateEventCommand } from "./lib/clk";
-import { buildBitRuns, buildWaveformGeometry } from "./lib/waveform";
+import {
+  BitRun,
+  buildBitRuns,
+  buildWaveformGeometry,
+  getWaveformChunks,
+} from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
 $COUNT    9
@@ -26,6 +32,52 @@ START_BIT_DATA
          bit   4  00000000000000000000000000000100
          bit  18  00000000000000000000000000000000
          endb`;
+
+const WAVE_LABEL_WIDTH = 82;
+
+type WaveformChunkProps = {
+  runs: BitRun[];
+  start: number;
+  end: number;
+  total: number;
+  resolution: number;
+};
+
+const WaveformChunk = memo(function WaveformChunk({
+  runs,
+  start,
+  end,
+  total,
+  resolution,
+}: WaveformChunkProps) {
+  const geometry = useMemo(
+    () => buildWaveformGeometry(runs, start, end, resolution),
+    [end, resolution, runs, start],
+  );
+  return (
+    <svg
+      className="wave-chunk"
+      viewBox="0 0 1000 36"
+      preserveAspectRatio="none"
+      style={{
+        left: `${(start / total) * 100}%`,
+        width: `${((end - start) / total) * 100}%`,
+      }}
+    >
+      <path d={geometry.path} />
+      {geometry.mixed.map((range) => (
+        <rect
+          key={range.start}
+          className="wave-mixed"
+          x={((range.start - start) / (end - start)) * 1000}
+          y="8"
+          width={((range.end - range.start) / (end - start)) * 1000}
+          height="20"
+        />
+      ))}
+    </svg>
+  );
+});
 
 type AggregatedSegment = Segment & { count: number; first: boolean };
 function aggregateSingleRowPatternRuns(
@@ -70,6 +122,7 @@ export default function App() {
     [stepLimit, setStepLimit] = useState(10000),
     [tab, setTab] = useState<"wave" | "segments">("wave"),
     [sourceScroll, setSourceScroll] = useState(0),
+    [waveTrackWidth, setWaveTrackWidth] = useState(1000),
     [selection, setSelection] = useState<{
       start: number;
       current: number;
@@ -113,21 +166,11 @@ export default function App() {
         ),
       [activeBits, displaySegments],
     ),
-    bitGeometry = useMemo(
-      () =>
-        new Map(
-          activeBits.map((bit) => [
-            bit,
-            buildWaveformGeometry(
-              bitRuns.get(bit) ?? [],
-              0,
-              total,
-              effectiveSpan / 1000,
-            ),
-          ]),
-        ),
-      [activeBits, bitRuns, effectiveSpan, total],
+    waveformChunks = useMemo(
+      () => getWaveformChunks(total, viewStart, effectiveSpan),
+      [effectiveSpan, total, viewStart],
     ),
+    waveformResolution = effectiveSpan / waveTrackWidth,
     rulerTicks = useMemo(() => {
       if (!total || !effectiveSpan) return [];
       const end = Math.min(total, viewStart + effectiveSpan),
@@ -200,6 +243,18 @@ export default function App() {
     setViewStart(start);
     pendingStart.current = null;
   }, [effectiveSpan, total]);
+  useLayoutEffect(() => {
+    if (tab !== "wave") return;
+    const el = waveScroll.current;
+    if (!el) return;
+
+    const updateWidth = () =>
+      setWaveTrackWidth(Math.max(1, el.clientWidth - WAVE_LABEL_WIDTH));
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tab]);
   const selectStart = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !total) return;
     const el = e.currentTarget,
@@ -599,19 +654,18 @@ export default function App() {
                   activeBits.map((bit) => (
                     <div className="wave-row" key={bit}>
                       <b>BIT {String(bit).padStart(2, "0")}</b>
-                      <svg viewBox="0 0 1000 36" preserveAspectRatio="none">
-                        <path d={bitGeometry.get(bit)?.path ?? ""} />
-                        {bitGeometry.get(bit)?.mixed.map((range) => (
-                          <rect
-                            key={range.start}
-                            className="wave-mixed"
-                            x={(range.start / total) * 1000}
-                            y="8"
-                            width={((range.end - range.start) / total) * 1000}
-                            height="20"
+                      <div className="wave-track">
+                        {waveformChunks.map((chunk) => (
+                          <WaveformChunk
+                            key={chunk.index}
+                            runs={bitRuns.get(bit) ?? []}
+                            start={chunk.start}
+                            end={chunk.end}
+                            total={total}
+                            resolution={waveformResolution}
                           />
                         ))}
-                      </svg>
+                      </div>
                     </div>
                   ))
                 ) : (

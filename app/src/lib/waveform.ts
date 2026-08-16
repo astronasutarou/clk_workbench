@@ -18,6 +18,38 @@ export type WaveformGeometry = {
   mixed: TickRange[];
 };
 
+export type WaveformChunk = TickRange & {
+  index: number;
+};
+
+const CHUNKS_PER_VIEW = 5;
+const OVERSCAN_VIEWS = 0.5;
+
+export function getWaveformChunks(
+  total: number,
+  viewStart: number,
+  viewSpan: number,
+): WaveformChunk[] {
+  if (total <= 0 || viewSpan <= 0) return [];
+
+  const chunkSpan = viewSpan / CHUNKS_PER_VIEW;
+  const renderStart = Math.max(0, viewStart - viewSpan * OVERSCAN_VIEWS);
+  const renderEnd = Math.min(
+    total,
+    viewStart + viewSpan * (1 + OVERSCAN_VIEWS),
+  );
+  const first = Math.floor(renderStart / chunkSpan);
+  const last = Math.max(first, Math.ceil(renderEnd / chunkSpan) - 1);
+  const chunks: WaveformChunk[] = [];
+
+  for (let index = first; index <= last; index++) {
+    const start = index * chunkSpan;
+    const end = Math.min(total, start + chunkSpan);
+    if (end > start) chunks.push({ index, start, end });
+  }
+  return chunks;
+}
+
 export function buildBitRuns(segments: Segment[], bit: number): BitRun[] {
   const runs: BitRun[] = [];
   let tick = 0;
