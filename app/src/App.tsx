@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { ClockEvent, compile, Segment, validateEventCommand } from "./lib/clk";
-import { buildBitRuns, pathForBitRuns } from "./lib/waveform";
+import { buildBitRuns, buildWaveformGeometry } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
 $COUNT    9
@@ -112,6 +112,21 @@ export default function App() {
           activeBits.map((bit) => [bit, buildBitRuns(displaySegments, bit)]),
         ),
       [activeBits, displaySegments],
+    ),
+    bitGeometry = useMemo(
+      () =>
+        new Map(
+          activeBits.map((bit) => [
+            bit,
+            buildWaveformGeometry(
+              bitRuns.get(bit) ?? [],
+              0,
+              total,
+              effectiveSpan / 1000,
+            ),
+          ]),
+        ),
+      [activeBits, bitRuns, effectiveSpan, total],
     ),
     rulerTicks = useMemo(() => {
       if (!total || !effectiveSpan) return [];
@@ -585,9 +600,17 @@ export default function App() {
                     <div className="wave-row" key={bit}>
                       <b>BIT {String(bit).padStart(2, "0")}</b>
                       <svg viewBox="0 0 1000 36" preserveAspectRatio="none">
-                        <path
-                          d={pathForBitRuns(bitRuns.get(bit) ?? [], total)}
-                        />
+                        <path d={bitGeometry.get(bit)?.path ?? ""} />
+                        {bitGeometry.get(bit)?.mixed.map((range) => (
+                          <rect
+                            key={range.start}
+                            className="wave-mixed"
+                            x={(range.start / total) * 1000}
+                            y="8"
+                            width={((range.end - range.start) / total) * 1000}
+                            height="20"
+                          />
+                        ))}
                       </svg>
                     </div>
                   ))

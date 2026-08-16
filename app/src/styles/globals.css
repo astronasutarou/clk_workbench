@@ -286,6 +286,10 @@ header h1 {
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
+.wave-row .wave-mixed {
+  fill: var(--wave);
+  opacity: 0.28;
+}
 .sequence table {
   width: 100%;
   border-collapse: collapse;
