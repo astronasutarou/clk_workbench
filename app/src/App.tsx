@@ -257,12 +257,14 @@ export default function App() {
   }, [tab]);
   const selectStart = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !total) return;
-    const el = e.currentTarget,
-      rect = el.getBoundingClientRect(),
+    const canvas = e.currentTarget,
+      el = waveScroll.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect(),
       x = e.clientX - rect.left,
       y = e.clientY - rect.top;
-    if (x >= el.clientWidth || y >= el.clientHeight) return;
-    el.setPointerCapture(e.pointerId);
+    if (x < 0 || x >= el.clientWidth || y < 0 || y >= el.clientHeight) return;
+    canvas.setPointerCapture(e.pointerId);
     setSelection({
       start: x,
       current: x,
@@ -273,16 +275,22 @@ export default function App() {
   };
   const selectMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!selection) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    const el = waveScroll.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
     setSelection({
       ...selection,
-      current: Math.max(0, Math.min(rect.width, e.clientX - rect.left)),
+      current: Math.max(0, Math.min(el.clientWidth, e.clientX - rect.left)),
     });
   };
-  const selectEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
+  const selectEnd = () => {
     if (!selection) return;
-    const el = e.currentTarget,
+    const el = waveScroll.current,
       width = Math.abs(selection.current - selection.start);
+    if (!el) {
+      setSelection(null);
+      return;
+    }
     setSelection(null);
     if (width < 8) return;
     const left = Math.min(selection.start, selection.current),
@@ -524,10 +532,6 @@ export default function App() {
                     : current,
                 );
               }}
-              onPointerDown={selectStart}
-              onPointerMove={selectMove}
-              onPointerUp={selectEnd}
-              onPointerCancel={() => setSelection(null)}
             >
               <div
                 className="wave-canvas"
@@ -536,6 +540,10 @@ export default function App() {
                     ? `${(total / effectiveSpan) * 100}%`
                     : "100%",
                 }}
+                onPointerDown={selectStart}
+                onPointerMove={selectMove}
+                onPointerUp={selectEnd}
+                onPointerCancel={() => setSelection(null)}
               >
                 <div className="event-line">
                   <b>EVENT</b>
