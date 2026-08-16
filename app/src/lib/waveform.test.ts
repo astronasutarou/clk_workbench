@@ -5,6 +5,7 @@ import {
   buildBitRuns,
   buildWaveformGeometry,
   getWaveformChunks,
+  getWaveformRenderRange,
 } from "./waveform.ts";
 
 function segment(word: number, duration: number, instance: number): Segment {
@@ -57,4 +58,29 @@ test("chunk identities stay stable until scrolling crosses a boundary", () => {
 
   assert.deepEqual(at405, at400);
   assert.notDeepEqual(at421, at400);
+});
+
+test("adjacent chunk render ranges overlap by one display pixel", () => {
+  const resolution = 2;
+  const left = getWaveformRenderRange({ start: 20, end: 40 }, 100, resolution);
+  const right = getWaveformRenderRange(
+    { start: 40, end: 60 },
+    100,
+    resolution,
+  );
+
+  assert.deepEqual(left, { start: 19, end: 41 });
+  assert.deepEqual(right, { start: 39, end: 61 });
+  assert.equal(left.end - right.start, resolution);
+});
+
+test("chunk render overlap stays inside the complete timeline", () => {
+  assert.deepEqual(getWaveformRenderRange({ start: 0, end: 20 }, 100, 2), {
+    start: 0,
+    end: 21,
+  });
+  assert.deepEqual(getWaveformRenderRange({ start: 80, end: 100 }, 100, 2), {
+    start: 79,
+    end: 100,
+  });
 });

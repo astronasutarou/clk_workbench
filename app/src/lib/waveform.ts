@@ -24,6 +24,7 @@ export type WaveformChunk = TickRange & {
 
 const CHUNKS_PER_VIEW = 5;
 const OVERSCAN_VIEWS = 0.5;
+const WAVEFORM_EDGE_OVERLAP_PX = 0.5;
 
 export function getWaveformChunks(
   total: number,
@@ -48,6 +49,18 @@ export function getWaveformChunks(
     if (end > start) chunks.push({ index, start, end });
   }
   return chunks;
+}
+
+export function getWaveformRenderRange(
+  chunk: TickRange,
+  total: number,
+  resolution: number,
+): TickRange {
+  const overlap = Math.max(0, resolution) * WAVEFORM_EDGE_OVERLAP_PX;
+  return {
+    start: Math.max(0, chunk.start - overlap),
+    end: Math.min(total, chunk.end + overlap),
+  };
 }
 
 export function buildBitRuns(segments: Segment[], bit: number): BitRun[] {

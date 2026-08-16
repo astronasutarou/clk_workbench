@@ -14,6 +14,7 @@ import {
   buildBitRuns,
   buildWaveformGeometry,
   getWaveformChunks,
+  getWaveformRenderRange,
 } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
@@ -50,9 +51,16 @@ const WaveformChunk = memo(function WaveformChunk({
   total,
   resolution,
 }: WaveformChunkProps) {
+  const renderRange = getWaveformRenderRange(
+      { start, end },
+      total,
+      resolution,
+    ),
+    renderStart = renderRange.start,
+    renderEnd = renderRange.end;
   const geometry = useMemo(
-    () => buildWaveformGeometry(runs, start, end, resolution),
-    [end, resolution, runs, start],
+    () => buildWaveformGeometry(runs, renderStart, renderEnd, resolution),
+    [renderEnd, renderStart, resolution, runs],
   );
   return (
     <svg
@@ -60,8 +68,8 @@ const WaveformChunk = memo(function WaveformChunk({
       viewBox="0 0 1000 36"
       preserveAspectRatio="none"
       style={{
-        left: `${(start / total) * 100}%`,
-        width: `${((end - start) / total) * 100}%`,
+        left: `${(renderStart / total) * 100}%`,
+        width: `${((renderEnd - renderStart) / total) * 100}%`,
       }}
     >
       <path d={geometry.path} />
@@ -69,9 +77,11 @@ const WaveformChunk = memo(function WaveformChunk({
         <rect
           key={range.start}
           className="wave-mixed"
-          x={((range.start - start) / (end - start)) * 1000}
+          x={((range.start - renderStart) / (renderEnd - renderStart)) * 1000}
           y="8"
-          width={((range.end - range.start) / (end - start)) * 1000}
+          width={
+            ((range.end - range.start) / (renderEnd - renderStart)) * 1000
+          }
           height="20"
         />
       ))}
