@@ -13,6 +13,7 @@ import {
   BitRun,
   buildBitRuns,
   buildWaveformGeometry,
+  getMinimumViewSpan,
   getWaveformChunks,
   getWaveformRenderRange,
 } from "./lib/waveform";
@@ -167,7 +168,8 @@ export default function App() {
     [result.segments],
   );
   const total = displaySegments.reduce((n, s) => n + s.duration, 0),
-    minSpan = Math.min(20, total),
+    waveViewportWidth = waveTrackWidth + WAVE_LABEL_WIDTH,
+    minSpan = getMinimumViewSpan(total, waveViewportWidth),
     effectiveSpan = total
       ? Math.min(total, Math.max(minSpan, viewSpan ?? total))
       : 0,
@@ -249,6 +251,16 @@ export default function App() {
     setViewSpan(null);
     if (waveScroll.current) waveScroll.current.scrollLeft = 0;
   };
+  useLayoutEffect(() => {
+    if (viewSpan === null || viewSpan >= minSpan || !total) return;
+
+    const centeredStart = viewStart + (viewSpan - minSpan) / 2;
+    pendingStart.current = Math.min(
+      total - minSpan,
+      Math.max(0, centeredStart),
+    );
+    setViewSpan(minSpan);
+  }, [minSpan, total, viewSpan, viewStart]);
   useLayoutEffect(() => {
     const el = waveScroll.current,
       start = pendingStart.current;

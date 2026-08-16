@@ -25,6 +25,21 @@ export type WaveformChunk = TickRange & {
 const CHUNKS_PER_VIEW = 5;
 const OVERSCAN_VIEWS = 0.5;
 const WAVEFORM_EDGE_OVERLAP_PX = 0.5;
+export const MAX_WAVEFORM_WIDTH = 12_000_000;
+
+export function getMinimumViewSpan(
+  total: number,
+  viewportWidth: number,
+  minimumSpan = 20,
+): number {
+  if (total <= 0) return 0;
+
+  const safeViewportWidth = Math.max(1, viewportWidth);
+  const layoutSafeSpan = Math.ceil(
+    (total * safeViewportWidth) / MAX_WAVEFORM_WIDTH,
+  );
+  return Math.min(total, Math.max(minimumSpan, layoutSafeSpan));
+}
 
 export function getWaveformChunks(
   total: number,

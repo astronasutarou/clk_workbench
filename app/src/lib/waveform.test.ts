@@ -4,8 +4,10 @@ import type { Segment } from "./clk";
 import {
   buildBitRuns,
   buildWaveformGeometry,
+  getMinimumViewSpan,
   getWaveformChunks,
   getWaveformRenderRange,
+  MAX_WAVEFORM_WIDTH,
 } from "./waveform.ts";
 
 function segment(word: number, duration: number, instance: number): Segment {
@@ -83,4 +85,28 @@ test("chunk render overlap stays inside the complete timeline", () => {
     start: 79,
     end: 100,
   });
+});
+
+test("minimum view span keeps the waveform inside the layout width limit", () => {
+  const total = 1_080_750;
+  const viewportWidth = 950;
+  const span = getMinimumViewSpan(total, viewportWidth);
+
+  assert.equal(span, 86);
+  assert.ok((viewportWidth * total) / span <= MAX_WAVEFORM_WIDTH);
+});
+
+test("minimum view span retains the 20 tick floor for short timelines", () => {
+  assert.equal(getMinimumViewSpan(480, 950), 20);
+  assert.equal(getMinimumViewSpan(12, 950), 12);
+  assert.equal(getMinimumViewSpan(0, 950), 0);
+});
+
+test("minimum view span scales for very large timelines", () => {
+  const total = 101_000_000;
+  const viewportWidth = 800;
+  const span = getMinimumViewSpan(total, viewportWidth);
+
+  assert.equal(span, 6734);
+  assert.ok((viewportWidth * total) / span <= MAX_WAVEFORM_WIDTH);
 });
