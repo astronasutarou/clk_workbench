@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { ClockEvent, compile, Segment, validateEventCommand } from "./lib/clk";
+import { buildBitRuns, pathForBitRuns } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
 $COUNT    9
@@ -25,22 +26,6 @@ START_BIT_DATA
          bit   4  00000000000000000000000000000100
          bit  18  00000000000000000000000000000000
          endb`;
-
-function pathFor(segments: Segment[], bit: number, total: number) {
-  let x = 0,
-    last = 0,
-    d = `M 0 28`;
-  for (const s of segments) {
-    const next = (s.word >>> bit) & 1,
-      x1 = (x / total) * 1000,
-      x2 = ((x + s.duration) / total) * 1000;
-    if (next !== last) d += ` V ${next ? 8 : 28}`;
-    d += ` H ${x2}`;
-    x += s.duration;
-    last = next;
-  }
-  return d;
-}
 
 type AggregatedSegment = Segment & { count: number; first: boolean };
 function aggregateSingleRowPatternRuns(
@@ -121,6 +106,13 @@ export default function App() {
       return bits.length ? bits : Array.from({ length: 8 }, (_, i) => 7 - i);
     }, [displaySegments]);
   const rulerStep = Math.max(1, Math.round(effectiveSpan / 10)),
+    bitRuns = useMemo(
+      () =>
+        new Map(
+          activeBits.map((bit) => [bit, buildBitRuns(displaySegments, bit)]),
+        ),
+      [activeBits, displaySegments],
+    ),
     rulerTicks = useMemo(() => {
       if (!total || !effectiveSpan) return [];
       const end = Math.min(total, viewStart + effectiveSpan),
@@ -593,7 +585,9 @@ export default function App() {
                     <div className="wave-row" key={bit}>
                       <b>BIT {String(bit).padStart(2, "0")}</b>
                       <svg viewBox="0 0 1000 36" preserveAspectRatio="none">
-                        <path d={pathFor(displaySegments, bit, total)} />
+                        <path
+                          d={pathForBitRuns(bitRuns.get(bit) ?? [], total)}
+                        />
                       </svg>
                     </div>
                   ))
