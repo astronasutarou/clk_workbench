@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import type { Segment } from "./clk";
+import {
+  buildBitRuns,
+  buildWaveformGeometry,
+  getWaveformChunks,
+} from "./waveform.ts";
+
+function segment(word: number, duration: number, instance: number): Segment {
+  return { word, duration, instance, pattern: "&TEST" };
+}
+
+test("adjacent segments with the same bit value become one run", () => {
+  const runs = buildBitRuns(
+    [segment(0, 2, 0), segment(0, 3, 1), segment(1, 4, 2)],
+    0,
+  );
+
+  assert.deepEqual(runs, [
+    { start: 0, end: 5, value: 0 },
+    { start: 5, end: 9, value: 1 },
+  ]);
+});
+
+test("a transition on a display-bin boundary remains exact", () => {
+  const runs = buildBitRuns([segment(0, 5, 0), segment(1, 5, 1)], 0);
+  const geometry = buildWaveformGeometry(runs, 0, 10, 5);
+
+  assert.deepEqual(geometry.mixed, []);
+  assert.equal(geometry.path, "M 0 28 H 500 V 8 H 1000");
+});
+
+test("unresolvable alternating values become a merged mixed range", () => {
+  const runs = buildBitRuns(
+    Array.from({ length: 10 }, (_, index) => segment(index % 2, 1, index)),
+    0,
+  );
+  const geometry = buildWaveformGeometry(runs, 0, 10, 5);
+
+  assert.deepEqual(geometry.mixed, [{ start: 0, end: 10 }]);
+  assert.equal(geometry.path, "");
+});
+
+test("waveform chunks cover half a viewport on both sides", () => {
+  const chunks = getWaveformChunks(1000, 400, 100);
+
+  assert.equal(chunks[0].start, 340);
+  assert.equal(chunks.at(-1)?.end, 560);
+  assert.ok(chunks.every((chunk) => chunk.end - chunk.start <= 20));
+});
+
+test("chunk identities stay stable until scrolling crosses a boundary", () => {
+  const at400 = getWaveformChunks(1000, 400, 100).map((chunk) => chunk.index);
+  const at405 = getWaveformChunks(1000, 405, 100).map((chunk) => chunk.index);
+  const at421 = getWaveformChunks(1000, 421, 100).map((chunk) => chunk.index);
+
+  assert.deepEqual(at405, at400);
+  assert.notDeepEqual(at421, at400);
+});
