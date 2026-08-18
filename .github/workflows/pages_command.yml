@@ -1,24 +1,48 @@
-name: Deploy GitHub Pages
+name: GitHub Pages by /deploy command
 
 on:
-  workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build-and-deploy:
+  build_and_deploy:
+    if: |
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/deploy')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Add reaction to comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+      - name: Check if PR is merged
+        id: check_merged
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return pr.data.merged;
+          result-encoding: string
+
       - name: Check out repository
         uses: actions/checkout@v7
 
