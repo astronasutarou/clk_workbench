@@ -51,7 +51,7 @@ body {
 
 .docs-header a {
   color: var(--ink);
-  font-size: 15px;
+  font-size: 18px;
   text-decoration: none;
 }
 
@@ -79,7 +79,7 @@ aside {
 aside p {
   margin: 0 0 14px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
@@ -93,7 +93,7 @@ aside a {
   padding: 7px 9px;
   border-left: 2px solid transparent;
   color: #4e5a61;
-  font-size: 12px;
+  font-size: 14px;
   text-decoration: none;
 }
 
@@ -115,7 +115,7 @@ main {
 .eyebrow {
   margin: 0 0 10px;
   color: var(--green);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -130,7 +130,7 @@ h3 {
 
 h1 {
   margin: 0;
-  font-size: clamp(36px, 6vw, 56px);
+  font-size: clamp(43px, 6vw, 67px);
   font-weight: 500;
   letter-spacing: -0.035em;
 }
@@ -139,7 +139,7 @@ h1 {
   max-width: 670px;
   margin: 20px 0 0;
   color: #4e5a61;
-  font-size: 16px;
+  font-size: 19px;
   line-height: 1.65;
 }
 
@@ -152,20 +152,20 @@ h2 {
   margin: 0 0 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
-  font-size: 24px;
+  font-size: 29px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 h3 {
   margin: 40px 0 14px;
-  font-size: 15px;
+  font-size: 18px;
 }
 
 p,
 li,
 td {
-  font-size: 14px;
+  font-size: 17px;
   line-height: 1.65;
 }
 
@@ -194,7 +194,7 @@ pre {
   border-radius: 6px;
   background: var(--navy);
   color: #dce6e8;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
 }
 
@@ -235,7 +235,7 @@ pre code {
   background: #e3f1ec;
   color: var(--green);
   content: counter(structure);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -246,12 +246,12 @@ pre code {
 
 .structure-list strong {
   margin-bottom: 2px;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .structure-list span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .table-wrap {
@@ -270,7 +270,7 @@ th {
   padding: 10px 13px;
   background: #eef1ef;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-align: left;
   text-transform: uppercase;
@@ -298,7 +298,7 @@ td:first-child {
   border-left: 3px solid var(--green);
   background: #eaf3f0;
   color: #42524d;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -327,7 +327,7 @@ td:first-child {
   color: var(--ink);
   box-shadow: 0 6px 20px rgba(19, 42, 56, 0.14);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .back-to-top:hover,
