@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./site-nav.css";
 :root {
   --bg: #f3f4f2;
   --panel: #fff;
@@ -48,7 +49,7 @@ header {
   background: #fff;
 }
 header h1 {
-  font-size: 15px;
+  font-size: 18px;
   letter-spacing: 0.015em;
   margin: 0;
 }
@@ -57,14 +58,14 @@ header h1 {
   align-items: center;
   gap: 9px;
   font:
-    11px ui-monospace,
+    13px ui-monospace,
     monospace;
   color: var(--muted);
 }
 .pill {
   padding: 4px 7px;
   border-radius: 20px;
-  font: 9px Arial;
+  font: 11px Arial;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -82,29 +83,73 @@ header h1 {
   justify-content: flex-end;
   gap: 7px;
 }
-.actions .docs-link {
-  padding: 7px 5px;
-  color: var(--muted);
-  font-size: 11px;
-  text-decoration: none;
-}
-.actions .docs-link:hover {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 .actions input {
   display: none;
 }
 .actions button {
   padding: 7px 11px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 13px;
 }
-.actions button:first-of-type {
+.actions > .open-file {
   background: var(--navy);
   border-color: var(--navy);
   color: #fff;
+}
+.example-menu {
+  position: relative;
+  font-size: 13px;
+}
+.example-menu summary {
+  padding: 7px 27px 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+.example-menu summary::-webkit-details-marker {
+  display: none;
+}
+.example-menu summary::after {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  transform: translateY(-65%) rotate(45deg);
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  content: "";
+}
+.example-menu[open] summary {
+  border-color: #aab8b4;
+}
+.example-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(19, 42, 56, 0.14);
+}
+.example-list button {
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 3px;
+  font:
+    12px ui-monospace,
+    monospace;
+  text-align: left;
+}
+.example-list button:hover,
+.example-list button:focus-visible {
+  background: #edf4f1;
 }
 .toolbar {
   height: 56px;
@@ -124,13 +169,13 @@ header h1 {
 }
 .toolbar b {
   font:
-    15px ui-monospace,
+    18px ui-monospace,
     monospace;
 }
 .toolbar span {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
@@ -138,19 +183,22 @@ header h1 {
   flex: 1;
 }
 .toolbar label {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   display: flex;
   align-items: center;
   gap: 8px;
 }
+.toolbar > label + label {
+  margin-left: 20px;
+}
 .toolbar select {
   padding: 6px 8px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .workbench {
-  height: min(800px, calc(100vh - 205px));
+  height: min(800px, calc(100vh - 242px));
   min-height: 450px;
   margin: 16px 24px 0;
   display: grid;
@@ -171,12 +219,12 @@ header h1 {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 13px;
 }
 .panel-title > span {
   color: var(--muted);
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
 }
 .source-wrap {
@@ -221,7 +269,7 @@ header h1 {
   border-bottom: 2px solid transparent;
   padding: 0 10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .tabs button.active {
   color: var(--ink);
@@ -234,7 +282,7 @@ header h1 {
   gap: 8px;
   color: var(--muted);
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
 }
 .zoom button {
@@ -265,7 +313,7 @@ header h1 {
   justify-content: space-between;
   color: #78858b;
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
   border-bottom: 1px solid #e5e8e7;
 }
@@ -286,7 +334,7 @@ header h1 {
   border-right: 1px solid #e5e8e7;
   color: #526068;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 .wave-track {
@@ -312,7 +360,7 @@ header h1 {
   width: 100%;
   border-collapse: collapse;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 .sequence th {
@@ -336,7 +384,7 @@ header h1 {
   display: grid;
   place-items: center;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .diagnostics {
   margin: 12px 24px 24px;
@@ -349,12 +397,12 @@ header h1 {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  font-size: 10px;
+  font-size: 12px;
 }
 .diag-head span {
   color: var(--muted);
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
 }
 .diagnostics ul {
@@ -366,14 +414,14 @@ header h1 {
 }
 .diagnostics li {
   display: grid;
-  grid-template-columns: 55px 42px 1fr;
+  grid-template-columns: 65px 48px 1fr;
   align-items: center;
   padding: 4px 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 .diagnostics li > span {
   text-transform: uppercase;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.08em;
 }
 .diagnostics li.error > span {
@@ -389,7 +437,7 @@ header h1 {
   margin: 0;
   padding: 12px;
   color: var(--green);
-  font-size: 10px;
+  font-size: 12px;
 }
 @media (max-width: 900px) {
   header {
@@ -411,7 +459,7 @@ header h1 {
   header {
     padding: 0 12px;
   }
-  .actions button:last-child {
+  .actions .example-menu {
     display: none;
   }
   .toolbar {

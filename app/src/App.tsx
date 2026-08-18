@@ -8,7 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { ClockEvent, compile, Segment, validateEventCommand } from "./lib/clk";
+import {
+  ClockEvent,
+  compile,
+  DEFAULT_STEP_LIMIT,
+  Segment,
+  validateEventCommand,
+} from "./lib/clk";
 import {
   BitRun,
   buildBitRuns,
@@ -16,6 +22,7 @@ import {
   getMinimumViewSpan,
   getWaveformChunks,
   getWaveformRenderRange,
+  isTimelinePointerX,
 } from "./lib/waveform";
 
 const SAMPLE = `# CLK definition example
@@ -45,6 +52,8 @@ START_BIT_DATA
          bit   4  00000000000000000000000000010100
          bit   2  00000000000000000000000000000000
          endb`;
+
+const EXAMPLES = [{ name: "example.clk", source: SAMPLE }] as const;
 
 const WAVE_LABEL_WIDTH = 82;
 
@@ -141,7 +150,7 @@ export default function App() {
     [viewSpan, setViewSpan] = useState<number | null>(null),
     [viewStart, setViewStart] = useState(0),
     [labelOffset, setLabelOffset] = useState(0),
-    [stepLimit, setStepLimit] = useState(10000),
+    [stepLimit, setStepLimit] = useState(DEFAULT_STEP_LIMIT),
     [tab, setTab] = useState<"wave" | "segments">("wave"),
     [sourceScroll, setSourceScroll] = useState(0),
     [waveTrackWidth, setWaveTrackWidth] = useState(1000),
@@ -154,9 +163,10 @@ export default function App() {
     } | null>(null),
     [events, setEvents] = useState<ClockEvent[]>([]),
     [eventDraft, setEventDraft] = useState<
-      (ClockEvent & { error: string }) | null
+      (ClockEvent & { error: string; originalTick: number | null }) | null
     >(null);
   const input = useRef<HTMLInputElement>(null),
+    exampleMenu = useRef<HTMLDetailsElement>(null),
     waveScroll = useRef<HTMLDivElement>(null),
     pendingStart = useRef<number | null>(null),
     result = useMemo(
@@ -222,6 +232,13 @@ export default function App() {
       fitWidth();
     };
     reader.readAsText(f, "ascii");
+  };
+  const loadExample = (example: (typeof EXAMPLES)[number]) => {
+    setSource(example.source);
+    setFileName(example.name);
+    clearEvents();
+    fitWidth();
+    exampleMenu.current?.removeAttribute("open");
   };
   const errors = result.diagnostics.filter(
       (d) => d.severity === "error",
@@ -296,7 +313,12 @@ export default function App() {
     const rect = el.getBoundingClientRect(),
       x = e.clientX - rect.left,
       y = e.clientY - rect.top;
-    if (x < 0 || x >= el.clientWidth || y < 0 || y >= el.clientHeight) return;
+    if (
+      !isTimelinePointerX(x, el.clientWidth, WAVE_LABEL_WIDTH) ||
+      y < 0 ||
+      y >= el.clientHeight
+    )
+      return;
     canvas.setPointerCapture(e.pointerId);
     setSelection({
       start: x,
@@ -313,7 +335,10 @@ export default function App() {
     const rect = el.getBoundingClientRect();
     setSelection({
       ...selection,
-      current: Math.max(0, Math.min(el.clientWidth, e.clientX - rect.left)),
+      current: Math.max(
+        WAVE_LABEL_WIDTH,
+        Math.min(el.clientWidth, e.clientX - rect.left),
+      ),
     });
   };
   const selectEnd = () => {
@@ -327,12 +352,15 @@ export default function App() {
     setSelection(null);
     if (width < 8) return;
     const left = Math.min(selection.start, selection.current),
+      timelineWidth = Math.max(1, el.clientWidth - WAVE_LABEL_WIDTH),
       visibleStart = Math.min(
         Math.max(0, total - effectiveSpan),
         Math.max(0, (selection.scrollLeft * total) / el.scrollWidth),
       ),
-      rawStart = visibleStart + (left / el.clientWidth) * effectiveSpan,
-      rawSpan = (width / el.clientWidth) * effectiveSpan,
+      rawStart =
+        visibleStart +
+        ((left - WAVE_LABEL_WIDTH) / timelineWidth) * effectiveSpan,
+      rawSpan = (width / timelineWidth) * effectiveSpan,
       nextSpan = Math.max(minSpan, Math.min(total, rawSpan)),
       center = rawStart + rawSpan / 2;
     setVisibleSpan(nextSpan, center - nextSpan / 2);
@@ -345,50 +373,71 @@ export default function App() {
     }
     return result.segments.at(-1)?.instance ?? 0;
   };
-  const openEvent = (e: ReactMouseEvent<HTMLDivElement>) => {
+  const openEventAtTick = (requestedTick: number) => {
     if (!total || !result.segments.length) return;
-    const rect = e.currentTarget.getBoundingClientRect(),
-      tick = Math.min(
-        total - 1,
-        Math.max(
-          0,
-          Math.floor(((e.clientX - rect.left) / rect.width) * total),
-        ),
-      ),
+    const tick = Math.min(total - 1, Math.max(0, Math.floor(requestedTick))),
       instance = instanceForTick(tick),
       existing = events.find((event) => event.instance === instance);
     setEventDraft(
       existing
-        ? { ...existing, error: "" }
-        : { tick, instance, command: "", error: "" },
+        ? { ...existing, error: "", originalTick: existing.tick }
+        : { tick, instance, command: "", error: "", originalTick: null },
     );
   };
+  const openEvent = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    openEventAtTick(((e.clientX - rect.left) / rect.width) * total);
+  };
+  const openEventAtVisibleCenter = () =>
+    openEventAtTick(viewStart + effectiveSpan / 2);
   const saveEvent = () => {
     if (!eventDraft) return;
+    if (
+      !Number.isInteger(eventDraft.tick) ||
+      eventDraft.tick < 0 ||
+      eventDraft.tick >= total
+    ) {
+      setEventDraft({
+        ...eventDraft,
+        error: `Tick must be an integer from 0 to ${Math.max(0, total - 1)}`,
+      });
+      return;
+    }
     const error = validateEventCommand(eventDraft.command, result.program);
     if (error) {
       setEventDraft({ ...eventDraft, error });
       return;
     }
     const saved: { tick: number; instance: number; command: string } = {
-      tick: eventDraft.tick,
-      instance: eventDraft.instance,
-      command: eventDraft.command.trim(),
-    };
+        tick: eventDraft.tick,
+        instance: instanceForTick(eventDraft.tick),
+        command: eventDraft.command.trim(),
+      },
+      invalidationTick = Math.min(
+        eventDraft.originalTick ?? saved.tick,
+        saved.tick,
+      );
     setEvents((current) =>
-      [...current.filter((event) => event.tick < saved.tick), saved].sort(
-        (a, b) => a.tick - b.tick,
-      ),
+      [
+        ...current.filter((event) => event.tick < invalidationTick),
+        saved,
+      ].sort((a, b) => a.tick - b.tick),
     );
     setEventDraft(null);
   };
   const deleteEvent = () => {
     if (!eventDraft) return;
+    const invalidationTick = eventDraft.originalTick ?? eventDraft.tick;
     setEvents((current) =>
-      current.filter((event) => event.tick < eventDraft.tick),
+      current.filter((event) => event.tick < invalidationTick),
     );
     setEventDraft(null);
   };
+  const eventDraftPosition =
+      eventDraft && total
+        ? Math.min(1, Math.max(0, eventDraft.tick / total))
+        : 0,
+    eventTickInvalid = eventDraft?.error.startsWith("Tick must") ?? false;
   return (
     <main>
       <header>
@@ -400,28 +449,38 @@ export default function App() {
           </span>
         </div>
         <div className="actions">
-          <a className="docs-link" href={`${import.meta.env.BASE_URL}docs/`}>
-            Documentation
-          </a>
           <input
             ref={input}
             type="file"
             accept=".clk,.src,.txt"
             onChange={onFile}
           />
-          <button onClick={() => input.current?.click()}>Open file</button>
-          <button
-            onClick={() => {
-              setSource(SAMPLE);
-              setFileName("example.clk");
-              clearEvents();
-              fitWidth();
-            }}
-          >
-            Example
+          <button className="open-file" onClick={() => input.current?.click()}>
+            Open file
           </button>
+          <details className="example-menu" ref={exampleMenu}>
+            <summary>Example</summary>
+            <div className="example-list" role="menu">
+              {EXAMPLES.map((example) => (
+                <button
+                  key={example.name}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => loadExample(example)}
+                >
+                  {example.name}
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
       </header>
+      <nav className="site-nav" aria-label="Primary">
+        <a href={import.meta.env.BASE_URL} aria-current="page">
+          Simulator
+        </a>
+        <a href={`${import.meta.env.BASE_URL}docs/`}>Documentation</a>
+      </nav>
       <div className="toolbar">
         <div>
           <b>{result.program?.instructions.length ?? 0}</b>
@@ -581,12 +640,33 @@ export default function App() {
                 onPointerUp={selectEnd}
                 onPointerCancel={() => setSelection(null)}
               >
-                <div className="event-line">
-                  <b>EVENT</b>
+                <div
+                  className="event-line"
+                  title="Click the event row to add an event"
+                >
+                  <button
+                    type="button"
+                    className="event-label"
+                    title="Add an event at an arbitrary tick"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={openEventAtVisibleCenter}
+                  >
+                    EVENT
+                  </button>
                   <div
                     className="event-track"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Add an event to the waveform"
+                    title="Click to add an event"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={openEvent}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openEventAtVisibleCenter();
+                      }
+                    }}
                   >
                     <div className="event-pins">
                       {events.map((event) => (
@@ -599,15 +679,19 @@ export default function App() {
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEventDraft({ ...event, error: "" });
+                            setEventDraft({
+                              ...event,
+                              error: "",
+                              originalTick: event.tick,
+                            });
                           }}
                         />
                       ))}
                     </div>
                     {eventDraft && (
                       <form
-                        className={`event-editor ${eventDraft.tick / total < 0.25 ? "align-left" : eventDraft.tick / total > 0.75 ? "align-right" : ""}`}
-                        style={{ left: `${(eventDraft.tick / total) * 100}%` }}
+                        className={`event-editor ${eventDraftPosition < 0.25 ? "align-left" : eventDraftPosition > 0.75 ? "align-right" : ""}`}
+                        style={{ left: `${eventDraftPosition * 100}%` }}
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                         onSubmit={(e) => {
@@ -616,13 +700,42 @@ export default function App() {
                         }}
                       >
                         <label>
-                          Event at tick {eventDraft.tick}
+                          <span>Event at tick</span>
+                          <input
+                            className={`event-tick-input ${eventTickInvalid ? "invalid" : ""}`}
+                            type="number"
+                            min="0"
+                            max={Math.max(0, total - 1)}
+                            step="1"
+                            aria-label="Event tick"
+                            value={eventDraft.tick}
+                            onChange={(e) => {
+                              const tick = Number(e.target.value);
+                              setEventDraft({
+                                ...eventDraft,
+                                tick,
+                                instance:
+                                  Number.isInteger(tick) && total
+                                    ? instanceForTick(
+                                        Math.min(total - 1, Math.max(0, tick)),
+                                      )
+                                    : eventDraft.instance,
+                                error: "",
+                              });
+                            }}
+                          />
                           <small>after outp #{eventDraft.instance + 1}</small>
                         </label>
                         <input
                           autoFocus
-                          className={eventDraft.error ? "invalid" : undefined}
-                          aria-invalid={Boolean(eventDraft.error)}
+                          className={
+                            eventDraft.error && !eventTickInvalid
+                              ? "invalid"
+                              : undefined
+                          }
+                          aria-invalid={
+                            Boolean(eventDraft.error) && !eventTickInvalid
+                          }
                           aria-label="Event command"
                           value={eventDraft.command}
                           placeholder="load $COUNTER 0x10"
@@ -639,9 +752,7 @@ export default function App() {
                         />
                         {eventDraft.error && <p>{eventDraft.error}</p>}
                         <div>
-                          {events.some(
-                            (event) => event.instance === eventDraft.instance,
-                          ) && (
+                          {eventDraft.originalTick !== null && (
                             <button
                               type="button"
                               className="delete"

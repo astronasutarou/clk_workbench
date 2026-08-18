@@ -37,7 +37,7 @@
   background: #fff;
   color: var(--ink);
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 
@@ -45,7 +45,7 @@
   display: inline;
   color: var(--ink);
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
 }
 
@@ -86,23 +86,38 @@
   background: #f4faf8;
 }
 
-.event-line > b {
+.event-label {
   position: sticky;
   left: 0;
   z-index: 6;
-  padding: 14px 8px 0;
+  padding: 0 8px;
   border-right: 1px solid #d9dfdd;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
   background: #edf7f3;
   color: #357060;
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
+  text-align: left;
   letter-spacing: 0.06em;
+}
+
+.event-label:hover,
+.event-label:focus-visible {
+  background: #dff1ea;
+  color: #24594b;
 }
 
 .event-track {
   position: relative;
   cursor: crosshair;
+}
+
+.event-track:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -2px;
 }
 
 .event-pins {
@@ -151,7 +166,7 @@
   position: absolute;
   z-index: 12;
   top: 31px;
-  width: 310px;
+  width: 340px;
   padding: 10px;
   transform: translateX(-50%);
   border: 1px solid #bfcac7;
@@ -171,17 +186,19 @@
 
 .event-editor label {
   display: flex;
+  align-items: center;
+  gap: 6px;
   justify-content: space-between;
   margin-bottom: 7px;
   color: #33434a;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 
 .event-editor label small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor input {
@@ -191,8 +208,14 @@
   border-radius: 4px;
   outline: 0;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
+}
+
+.event-editor .event-tick-input {
+  width: 76px;
+  padding: 4px 6px;
+  text-align: right;
 }
 
 .event-editor input:focus {
@@ -210,7 +233,7 @@
 .event-editor p {
   margin: 6px 0 0;
   color: var(--red);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor > div {
@@ -223,7 +246,7 @@
 .event-editor button {
   padding: 5px 8px;
   border-radius: 4px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor .save {

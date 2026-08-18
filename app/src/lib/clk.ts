@@ -26,6 +26,8 @@ export type Result = {
 };
 export type ClockEvent = { tick: number; instance: number; command: string };
 
+export const DEFAULT_STEP_LIMIT = 50_000;
+
 const OPS: Record<
   string,
   { n: number; k: ("value" | "register" | "label" | "pattern")[] }
@@ -49,7 +51,7 @@ const numberValue = (s: string) =>
 export function compile(
   source: string,
   labelOffset = 0,
-  stepLimit = 10000,
+  stepLimit = DEFAULT_STEP_LIMIT,
   events: ClockEvent[] = [],
 ): Result {
   const diagnostics: Diagnostic[] = [],
