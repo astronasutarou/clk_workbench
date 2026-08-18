@@ -1,3 +1,5 @@
+@import "./site-nav.css";
+
 :root {
   --background: #f3f4f2;
   --panel: #ffffff;
@@ -31,10 +33,13 @@ body {
   background: var(--background);
 }
 
-.docs-header {
+.docs-masthead {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.docs-header {
   height: 64px;
   padding: 0 24px;
   display: flex;
@@ -55,15 +60,6 @@ body {
   text-underline-offset: 4px;
 }
 
-.docs-header span {
-  padding-left: 18px;
-  border-left: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .docs-layout {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
@@ -75,7 +71,7 @@ body {
 
 aside {
   position: sticky;
-  top: 96px;
+  top: 133px;
   align-self: start;
   padding-top: 46px;
 }
@@ -148,7 +144,7 @@ h1 {
 }
 
 section {
-  scroll-margin-top: 88px;
+  scroll-margin-top: 125px;
   margin-top: 72px;
 }
 
@@ -353,14 +349,7 @@ td:first-child {
     height: auto;
     min-height: 58px;
     padding: 12px 16px;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .docs-header span {
-    padding-left: 0;
-    border-left: 0;
+    align-items: center;
   }
 
   .docs-layout {

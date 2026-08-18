@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./site-nav.css";
 :root {
   --bg: #f3f4f2;
   --panel: #fff;
@@ -82,17 +83,6 @@ header h1 {
   justify-content: flex-end;
   gap: 7px;
 }
-.actions .docs-link {
-  padding: 7px 5px;
-  color: var(--muted);
-  font-size: 13px;
-  text-decoration: none;
-}
-.actions .docs-link:hover {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 .actions input {
   display: none;
 }
@@ -153,7 +143,7 @@ header h1 {
   font-size: 12px;
 }
 .workbench {
-  height: min(800px, calc(100vh - 205px));
+  height: min(800px, calc(100vh - 242px));
   min-height: 450px;
   margin: 16px 24px 0;
   display: grid;

@@ -439,9 +439,6 @@ export default function App() {
           </span>
         </div>
         <div className="actions">
-          <a className="docs-link" href={`${import.meta.env.BASE_URL}docs/`}>
-            Documentation
-          </a>
           <input
             ref={input}
             type="file"
@@ -461,6 +458,12 @@ export default function App() {
           </button>
         </div>
       </header>
+      <nav className="site-nav" aria-label="Primary">
+        <a href={import.meta.env.BASE_URL} aria-current="page">
+          Simulator
+        </a>
+        <a href={`${import.meta.env.BASE_URL}docs/`}>Documentation</a>
+      </nav>
       <div className="toolbar">
         <div>
           <b>{result.program?.instructions.length ?? 0}</b>
