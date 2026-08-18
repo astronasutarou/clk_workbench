@@ -7,6 +7,7 @@ import {
   getMinimumViewSpan,
   getWaveformChunks,
   getWaveformRenderRange,
+  isTimelinePointerX,
   MAX_WAVEFORM_WIDTH,
 } from "./waveform.ts";
 
@@ -109,4 +110,11 @@ test("minimum view span scales for very large timelines", () => {
 
   assert.equal(span, 6734);
   assert.ok((viewportWidth * total) / span <= MAX_WAVEFORM_WIDTH);
+});
+
+test("zoom selection starts only to the right of waveform labels", () => {
+  assert.equal(isTimelinePointerX(81.9, 950, 82), false);
+  assert.equal(isTimelinePointerX(82, 950, 82), true);
+  assert.equal(isTimelinePointerX(949.9, 950, 82), true);
+  assert.equal(isTimelinePointerX(950, 950, 82), false);
 });

@@ -27,6 +27,14 @@ const OVERSCAN_VIEWS = 0.5;
 const WAVEFORM_EDGE_OVERLAP_PX = 0.5;
 export const MAX_WAVEFORM_WIDTH = 12_000_000;
 
+export function isTimelinePointerX(
+  pointerX: number,
+  viewportWidth: number,
+  labelWidth: number,
+): boolean {
+  return pointerX >= labelWidth && pointerX < viewportWidth;
+}
+
 export function getMinimumViewSpan(
   total: number,
   viewportWidth: number,
