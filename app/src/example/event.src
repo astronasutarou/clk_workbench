@@ -1,0 +1,25 @@
+# Event-controlled mode switch
+# Add an event such as: load $MODE 1
+$COUNT    99
+$CLEAR    0
+$COUNTER  0x20
+$MODE     0x21
+
+load $COUNTER $COUNT
+load $MODE $CLEAR
+@LOOP outp &IDLE
+      bjmp $MODE @SIGNAL
+      cjmp $COUNTER @LOOP
+      halt
+
+@SIGNAL outp &MARKER
+        halt
+
+START_BIT_DATA
+&IDLE bit  6  00000000000000000000000000000000
+      bit  6  00000000000000000000000000000001
+      endb
+
+&MARKER bit  12  00000000000000000000000000000011
+        bit  12  00000000000000000000000000000000
+        endb
