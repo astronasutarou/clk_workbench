@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Syntax and instruction reference for CLK definition files."
+    />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="stylesheet" href="../src/styles/docs.css" />
+    <title>CLK Syntax Reference · Clock Definition Workbench</title>
+  </head>
+  <body>
+    <header class="docs-header">
+      <a href="../">Clock Definition Workbench</a>
+      <span>Documentation</span>
+    </header>
+
+    <div class="docs-layout">
+      <aside aria-label="Documentation navigation">
+        <p>CLK reference</p>
+        <nav>
+          <a href="#structure">File structure</a>
+          <a href="#example">Minimal example</a>
+          <a href="#instructions">Instructions</a>
+          <a href="#patterns">Pattern directives</a>
+        </nav>
+      </aside>
+
+      <main>
+        <div class="page-heading">
+          <p class="eyebrow">Language reference</p>
+          <h1>CLK syntax</h1>
+          <p>
+            A CLK file defines a small register-based program and the 32-bit
+            output patterns emitted by that program. This page documents the
+            syntax accepted by Clock Definition Workbench.
+          </p>
+        </div>
+
+        <section id="structure">
+          <h2>File structure</h2>
+          <p>A file contains three ordered parts.</p>
+          <ol class="structure-list">
+            <li>
+              <strong>Definitions and instructions</strong>
+              <span>
+                Numeric symbols, command labels, and executable instructions.
+              </span>
+            </li>
+            <li>
+              <strong><code>START_BIT_DATA</code></strong>
+              <span>
+                The required marker that separates instructions from pattern
+                data. It must occur exactly once.
+              </span>
+            </li>
+            <li>
+              <strong>Bit patterns</strong>
+              <span>
+                Named sequences of positive durations and 32-bit output words.
+              </span>
+            </li>
+          </ol>
+
+          <pre><code>$NAME VALUE
+
+@LABEL instruction operands
+       instruction operands
+
+START_BIT_DATA
+&amp;PATTERN bit DURATION BIT_WORD
+         bit DURATION BIT_WORD
+         endb</code></pre>
+
+          <h3>Lexical rules</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Form</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code># comment</code></td>
+                  <td>
+                    A comment begins with <code>#</code> and continues to the
+                    end of the line.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>$NAME</code></td>
+                  <td>
+                    Numeric symbol. A definition uses
+                    <code>$NAME VALUE</code>. Register operands use the
+                    symbol's value as an address.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>@LABEL</code></td>
+                  <td>
+                    Command label. A label and its instruction must be on the
+                    same line.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>&amp;PATTERN</code></td>
+                  <td>
+                    Named output pattern referenced by <code>outp</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>VALUE</code></td>
+                  <td>
+                    Unsigned decimal or hexadecimal integer. Hexadecimal values
+                    use the <code>0x</code> prefix.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>BIT_WORD</code></td>
+                  <td>
+                    Exactly 32 binary digits. The Workbench displays the
+                    leftmost digit as bit 31 and the rightmost as bit 0.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note">
+            <strong>Case and encoding.</strong> Source text must be ASCII.
+            Keywords, mnemonics, and symbol names are case-sensitive;
+            instruction mnemonics are lowercase. The Workbench recognizes a
+            symbol by its prefix and does not otherwise restrict the characters
+            in its name. Letters, digits, and underscores are recommended.
+          </div>
+
+          <div class="note">
+            <strong>Numeric ranges.</strong> Definitions are unsigned 32-bit
+            integers. A symbol used as a register address must resolve to
+            <code>0x0000</code>–<code>0x0FFF</code>. Normal reads of an
+            unwritten register return zero; <code>retn</code> handles an
+            unwritten return register as described below.
+          </div>
+        </section>
+
+        <section id="example">
+          <h2>Minimal example</h2>
+          <p>
+            This program emits one four-tick pattern and then terminates. The
+            first two ticks have a zero word; the final two ticks set bit 0.
+          </p>
+          <pre><code># Minimal CLK program
+outp &amp;PULSE
+halt
+
+START_BIT_DATA
+&amp;PULSE bit 2 00000000000000000000000000000000
+       bit 2 00000000000000000000000000000001
+       endb</code></pre>
+        </section>
+
+        <section id="instructions">
+          <h2>Instruction reference</h2>
+          <p>
+            <code>R[$REG]</code> denotes the register whose address is defined
+            by <code>$REG</code>. <code>PC</code> is the instruction address
+            that will execute next.
+          </p>
+
+          <div class="table-wrap instruction-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Syntax</th>
+                  <th>Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr id="nop">
+                  <td><code>nop</code></td>
+                  <td>
+                    Performs no operation, then advances to the next
+                    instruction.
+                  </td>
+                </tr>
+                <tr id="outp">
+                  <td><code>outp &amp;PATTERN</code></td>
+                  <td>
+                    Appends every row of the named pattern to the output in
+                    declaration order, then advances.
+                  </td>
+                </tr>
+                <tr id="jump">
+                  <td><code>jump @LABEL</code></td>
+                  <td>Sets <code>PC</code> to the named command label.</td>
+                </tr>
+                <tr id="ajmp">
+                  <td><code>ajmp $REG @LABEL</code></td>
+                  <td>
+                    Jumps when <code>R[$REG] &gt; 0</code>. The register is not
+                    modified. Otherwise advances.
+                  </td>
+                </tr>
+                <tr id="bjmp">
+                  <td><code>bjmp $REG @LABEL</code></td>
+                  <td>
+                    When <code>R[$REG] &gt; 0</code>, clears that register to
+                    zero and jumps. Otherwise advances.
+                  </td>
+                </tr>
+                <tr id="cjmp">
+                  <td><code>cjmp $REG @LABEL</code></td>
+                  <td>
+                    When <code>R[$REG] &gt; 0</code>, decrements it by one and
+                    jumps. Otherwise advances.
+                  </td>
+                </tr>
+                <tr id="cmpz">
+                  <td><code>cmpz $LEFT $RIGHT</code></td>
+                  <td>
+                    If the two register values are equal, sets
+                    <code>R[$LEFT]</code> to zero. Then advances.
+                  </td>
+                </tr>
+                <tr id="load">
+                  <td><code>load $REG $VALUE</code></td>
+                  <td>
+                    Stores the value of the numeric symbol
+                    <code>$VALUE</code> in <code>R[$REG]</code>, then advances.
+                  </td>
+                </tr>
+                <tr id="copy">
+                  <td><code>copy $DEST $SOURCE</code></td>
+                  <td>
+                    Copies <code>R[$SOURCE]</code> to <code>R[$DEST]</code>,
+                    then advances.
+                  </td>
+                </tr>
+                <tr id="subj">
+                  <td><code>subj $RETURN @LABEL</code></td>
+                  <td>
+                    Stores the address of the next instruction in
+                    <code>R[$RETURN]</code>, then jumps to the label. There is
+                    no call stack; reusing the register overwrites its return
+                    address.
+                  </td>
+                </tr>
+                <tr id="retn">
+                  <td><code>retn $RETURN</code></td>
+                  <td>
+                    Sets <code>PC</code> to the address stored in
+                    <code>R[$RETURN]</code>. If that register has never been
+                    written, execution moves to the end of the instruction
+                    list.
+                  </td>
+                </tr>
+                <tr id="halt">
+                  <td><code>halt</code></td>
+                  <td>Terminates execution immediately.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note">
+            <strong>Command-label address.</strong> The toolbar's
+            <em>Label address</em> setting determines whether a label resolves
+            to its same-line instruction or the following instruction. The
+            default is <em>same-line instruction</em>.
+          </div>
+
+          <div class="note">
+            <strong>Waveform events.</strong> An event accepts exactly one
+            non-output instruction and runs it once immediately after the
+            selected <code>outp</code>. Events cannot contain
+            <code>outp</code> or define labels. For an event only,
+            <code>load</code> also accepts an immediate decimal or hexadecimal
+            value, such as <code>load $COUNTER 0x10</code>.
+          </div>
+        </section>
+
+        <section id="patterns">
+          <h2>Pattern directives</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Syntax</th>
+                  <th>Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>&amp;NAME bit DURATION BIT_WORD</code>
+                  </td>
+                  <td>
+                    Starts a named pattern and defines its first output row.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>bit DURATION BIT_WORD</code></td>
+                  <td>
+                    Adds a row to the active pattern. Duration must be a
+                    positive decimal or hexadecimal integer.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>endb</code></td>
+                  <td>
+                    Terminates the active pattern. It takes no operands, and an
+                    empty pattern is invalid.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="closing-note">
+            Durations are expressed in ticks. Conversion from ticks to physical
+            time, and the mapping from bit positions to hardware signals, are
+            device-specific and are not defined by the CLK file.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

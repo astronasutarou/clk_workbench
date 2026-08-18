@@ -11,8 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test src/lib/waveform.test.ts",
-    "format": "prettier src --write",
-    "format:check": "prettier src --check"
+    "format": "prettier src docs vite.config.ts --write",
+    "format:check": "prettier src docs vite.config.ts --check"
   },
   "dependencies": {
     "react": "19.2.6",

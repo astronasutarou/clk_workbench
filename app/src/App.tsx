@@ -400,6 +400,9 @@ export default function App() {
           </span>
         </div>
         <div className="actions">
+          <a className="docs-link" href={`${import.meta.env.BASE_URL}docs/`}>
+            Documentation
+          </a>
           <input
             ref={input}
             type="file"
