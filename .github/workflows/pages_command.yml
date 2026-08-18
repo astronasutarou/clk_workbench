@@ -10,10 +10,13 @@ permissions:
   id-token: write
 
 jobs:
-  run_command:
+  build_and_deploy:
     if: |
       github.event.issue.pull_request != null &&
       startsWith(github.event.comment.body, '/deploy')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Add reaction to comment
