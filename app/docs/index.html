@@ -333,5 +333,29 @@ START_BIT_DATA
         </section>
       </main>
     </div>
+
+    <button class="back-to-top" type="button" hidden>
+      <span aria-hidden="true">↑</span>
+      Back to top
+    </button>
+
+    <script>
+      const button = document.querySelector(".back-to-top");
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      );
+      const updateVisibility = () => {
+        button.hidden = window.scrollY < 320;
+      };
+
+      window.addEventListener("scroll", updateVisibility, { passive: true });
+      button.addEventListener("click", () => {
+        window.scrollTo({
+          top: 0,
+          behavior: reduceMotion.matches ? "auto" : "smooth",
+        });
+      });
+      updateVisibility();
+    </script>
   </body>
 </html>

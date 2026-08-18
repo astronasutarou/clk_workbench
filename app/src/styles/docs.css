@@ -312,6 +312,34 @@ td:first-child {
   border-top: 1px solid var(--line);
 }
 
+.back-to-top {
+  position: fixed;
+  z-index: 20;
+  right: 24px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #bfc9c6;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 6px 20px rgba(19, 42, 56, 0.14);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.back-to-top:hover,
+.back-to-top:focus-visible {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.back-to-top[hidden] {
+  display: none;
+}
+
 @media (max-width: 800px) {
   .docs-layout {
     width: min(100% - 32px, 820px);
@@ -354,6 +382,11 @@ td:first-child {
 
   .docs-layout {
     width: calc(100% - 24px);
+  }
+
+  .back-to-top {
+    right: 12px;
+    bottom: 12px;
   }
 
   td:first-child,
