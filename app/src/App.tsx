@@ -15,6 +15,7 @@ import {
   Segment,
   validateEventCommand,
 } from "./lib/clk";
+import { shouldActivateEventTrack } from "./lib/event-ui";
 import {
   BitRun,
   buildBitRuns,
@@ -662,7 +663,12 @@ export default function App() {
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={openEvent}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
+                      if (
+                        shouldActivateEventTrack(
+                          e.key,
+                          e.target === e.currentTarget,
+                        )
+                      ) {
                         e.preventDefault();
                         openEventAtVisibleCenter();
                       }

@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/lib/waveform.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/waveform.test.ts src/lib/event-ui.test.ts",
     "format": "prettier src docs vite.config.ts --write",
     "format:check": "prettier src docs vite.config.ts --check"
   },
