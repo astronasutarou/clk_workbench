@@ -15,6 +15,7 @@ import {
   Segment,
   validateEventCommand,
 } from "./lib/clk";
+import { EXAMPLES } from "./example";
 import { shouldActivateEventTrack } from "./lib/event-ui";
 import {
   BitRun,
@@ -25,25 +26,6 @@ import {
   getWaveformRenderRange,
   isTimelinePointerX,
 } from "./lib/waveform";
-
-const SAMPLE = `# CLK definition example
-$COUNT    29
-$COUNTER  0x20
-
-load $COUNTER $COUNT
-@LOOP outp &PATTERN
-      cjmp $COUNTER @LOOP
-      halt
-
-START_BIT_DATA
-&PATTERN bit  18  00000000000000000000000000000000
-         bit   4  00000000000000000000000000000100
-         bit   4  00000000000000000000000000010100
-         bit   4  00000000000000000000000000000100
-         bit  18  00000000000000000000000000000000
-         endb`;
-
-const EXAMPLES = [{ name: "example.clk", source: SAMPLE }] as const;
 
 const WAVE_LABEL_WIDTH = 82;
 
@@ -135,8 +117,8 @@ function aggregateSingleRowPatternRuns(
 }
 
 export default function App() {
-  const [source, setSource] = useState(SAMPLE),
-    [fileName, setFileName] = useState("example.clk"),
+  const [source, setSource] = useState(EXAMPLES[0].source),
+    [fileName, setFileName] = useState<string>(EXAMPLES[0].name),
     [viewSpan, setViewSpan] = useState<number | null>(null),
     [viewStart, setViewStart] = useState(0),
     [labelOffset, setLabelOffset] = useState(0),

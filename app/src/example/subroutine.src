@@ -1,0 +1,23 @@
+# Reusable output sequence called as a subroutine
+$COUNT    5
+$COUNTER  0x20
+$RETURN   0x21
+
+load $COUNTER $COUNT
+@LOOP subj $RETURN @EMIT_PULSE
+      cjmp $COUNTER @LOOP
+      halt
+
+@EMIT_PULSE outp &PREPARE
+            outp &PULSE
+            retn $RETURN
+
+START_BIT_DATA
+&PREPARE bit  4  00000000000000000000000000000000
+         bit  2  00000000000000000000000000000001
+         endb
+
+&PULSE bit  3  00000000000000000000000000000011
+       bit  3  00000000000000000000000000000001
+       bit  4  00000000000000000000000000000000
+       endb
