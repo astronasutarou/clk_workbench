@@ -14,6 +14,7 @@ Clock Definition Workbench parses and executes CLK definition files and displays
 ## Project layout
 
 - `app/`: self-contained Vite project root
+- `app/docs/`: static CLK syntax reference entry point
 - `app/src/`: React application source code
 - `app/public/`: static assets copied into the build
 - `site/`: generated static website for GitHub Pages
