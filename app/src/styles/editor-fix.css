@@ -37,7 +37,7 @@
   background: #fff;
   color: var(--ink);
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 
@@ -45,7 +45,7 @@
   display: inline;
   color: var(--ink);
   font:
-    9px ui-monospace,
+    11px ui-monospace,
     monospace;
 }
 
@@ -166,7 +166,7 @@
   position: absolute;
   z-index: 12;
   top: 31px;
-  width: 310px;
+  width: 340px;
   padding: 10px;
   transform: translateX(-50%);
   border: 1px solid #bfcac7;
@@ -192,13 +192,13 @@
   margin-bottom: 7px;
   color: #33434a;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 
 .event-editor label small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor input {
@@ -208,7 +208,7 @@
   border-radius: 4px;
   outline: 0;
   font:
-    10px ui-monospace,
+    12px ui-monospace,
     monospace;
 }
 
@@ -233,7 +233,7 @@
 .event-editor p {
   margin: 6px 0 0;
   color: var(--red);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor > div {
@@ -246,7 +246,7 @@
 .event-editor button {
   padding: 5px 8px;
   border-radius: 4px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .event-editor .save {

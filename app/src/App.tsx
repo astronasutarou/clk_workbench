@@ -8,7 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { ClockEvent, compile, Segment, validateEventCommand } from "./lib/clk";
+import {
+  ClockEvent,
+  compile,
+  DEFAULT_STEP_LIMIT,
+  Segment,
+  validateEventCommand,
+} from "./lib/clk";
 import {
   BitRun,
   buildBitRuns,
@@ -142,7 +148,7 @@ export default function App() {
     [viewSpan, setViewSpan] = useState<number | null>(null),
     [viewStart, setViewStart] = useState(0),
     [labelOffset, setLabelOffset] = useState(0),
-    [stepLimit, setStepLimit] = useState(10000),
+    [stepLimit, setStepLimit] = useState(DEFAULT_STEP_LIMIT),
     [tab, setTab] = useState<"wave" | "segments">("wave"),
     [sourceScroll, setSourceScroll] = useState(0),
     [waveTrackWidth, setWaveTrackWidth] = useState(1000),
