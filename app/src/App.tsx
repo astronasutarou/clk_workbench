@@ -733,7 +733,7 @@ export default function App() {
                               ? "invalid"
                               : undefined
                           }
-                          aria-invalid={Boolean(eventDraft.error)}
+                          aria-invalid={Boolean(eventDraft.error) && !eventTickInvalid}
                           aria-label="Event command"
                           value={eventDraft.command}
                           placeholder="load $COUNTER 0x10"
