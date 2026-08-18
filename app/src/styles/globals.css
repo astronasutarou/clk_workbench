@@ -91,10 +91,65 @@ header h1 {
   border-radius: 5px;
   font-size: 13px;
 }
-.actions button:first-of-type {
+.actions > .open-file {
   background: var(--navy);
   border-color: var(--navy);
   color: #fff;
+}
+.example-menu {
+  position: relative;
+  font-size: 13px;
+}
+.example-menu summary {
+  padding: 7px 27px 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+.example-menu summary::-webkit-details-marker {
+  display: none;
+}
+.example-menu summary::after {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  transform: translateY(-65%) rotate(45deg);
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  content: "";
+}
+.example-menu[open] summary {
+  border-color: #aab8b4;
+}
+.example-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(19, 42, 56, 0.14);
+}
+.example-list button {
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 3px;
+  font:
+    12px ui-monospace,
+    monospace;
+  text-align: left;
+}
+.example-list button:hover,
+.example-list button:focus-visible {
+  background: #edf4f1;
 }
 .toolbar {
   height: 56px;
@@ -404,7 +459,7 @@ header h1 {
   header {
     padding: 0 12px;
   }
-  .actions button:last-child {
+  .actions .example-menu {
     display: none;
   }
   .toolbar {

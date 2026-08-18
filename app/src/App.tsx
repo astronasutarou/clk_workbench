@@ -53,6 +53,8 @@ START_BIT_DATA
          bit   2  00000000000000000000000000000000
          endb`;
 
+const EXAMPLES = [{ name: "example.clk", source: SAMPLE }] as const;
+
 const WAVE_LABEL_WIDTH = 82;
 
 type WaveformChunkProps = {
@@ -164,6 +166,7 @@ export default function App() {
       (ClockEvent & { error: string; originalTick: number | null }) | null
     >(null);
   const input = useRef<HTMLInputElement>(null),
+    exampleMenu = useRef<HTMLDetailsElement>(null),
     waveScroll = useRef<HTMLDivElement>(null),
     pendingStart = useRef<number | null>(null),
     result = useMemo(
@@ -229,6 +232,13 @@ export default function App() {
       fitWidth();
     };
     reader.readAsText(f, "ascii");
+  };
+  const loadExample = (example: (typeof EXAMPLES)[number]) => {
+    setSource(example.source);
+    setFileName(example.name);
+    clearEvents();
+    fitWidth();
+    exampleMenu.current?.removeAttribute("open");
   };
   const errors = result.diagnostics.filter(
       (d) => d.severity === "error",
@@ -445,17 +455,24 @@ export default function App() {
             accept=".clk,.src,.txt"
             onChange={onFile}
           />
-          <button onClick={() => input.current?.click()}>Open file</button>
-          <button
-            onClick={() => {
-              setSource(SAMPLE);
-              setFileName("example.clk");
-              clearEvents();
-              fitWidth();
-            }}
-          >
-            Example
+          <button className="open-file" onClick={() => input.current?.click()}>
+            Open file
           </button>
+          <details className="example-menu" ref={exampleMenu}>
+            <summary>Example</summary>
+            <div className="example-list" role="menu">
+              {EXAMPLES.map((example) => (
+                <button
+                  key={example.name}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => loadExample(example)}
+                >
+                  {example.name}
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
       </header>
       <nav className="site-nav" aria-label="Primary">
