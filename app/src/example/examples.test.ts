@@ -53,3 +53,28 @@ test("multibit.src propagates one high state across ten bits", () => {
     Array.from({ length: 10 }, (_, bit) => 1 << bit),
   );
 });
+
+test("composite.src reads thirty pixels across ten frames", () => {
+  const source = readFileSync(
+    new URL("composite.src", import.meta.url),
+    "utf8",
+  );
+  const result = compile(source);
+  const invocationCounts = new Map<string, Set<number>>();
+
+  for (const { instance, pattern } of result.segments) {
+    const instances = invocationCounts.get(pattern) ?? new Set<number>();
+    instances.add(instance);
+    invocationCounts.set(pattern, instances);
+  }
+
+  assert.equal(invocationCounts.get("&RESET")?.size, 10);
+  assert.equal(invocationCounts.get("&INTEGRATE")?.size, 10);
+  assert.equal(invocationCounts.get("&TRANSFER")?.size, 300);
+  assert.equal(invocationCounts.get("&SAMPLE")?.size, 300);
+  assert.equal(invocationCounts.get("&FRAME_END")?.size, 10);
+  assert.equal(
+    result.segments.reduce((total, { duration }) => total + duration, 0),
+    5480,
+  );
+});

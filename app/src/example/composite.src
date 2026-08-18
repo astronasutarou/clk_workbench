@@ -1,8 +1,8 @@
-# Simplified readout for a one-dimensional integrating image sensor
-# Each frame performs a global reset and integration, then reads eight pixels
+# Simplified readout for a 30-pixel one-dimensional integrating image sensor
+# Ten frames perform a global reset and integration, then read each pixel
 # through a two-phase serial transfer and sample sequence
-$FRAME_COUNT    1
-$PIXEL_COUNT    7
+$FRAME_COUNT    9
+$PIXEL_COUNT    29
 $FRAME_COUNTER  0x20
 $PIXEL_COUNTER  0x21
 $RETURN         0x22
@@ -27,7 +27,7 @@ START_BIT_DATA
        bit   4  00000000000000000000000000000000
        endb
 
-&INTEGRATE bit  24  00000000000000000000000000000010
+&INTEGRATE bit  96  00000000000000000000000000000010
            bit   4  00000000000000000000000000000000
            endb
 
