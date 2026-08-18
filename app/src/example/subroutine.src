@@ -1,5 +1,5 @@
 # Reusable output sequence called as a subroutine
-$COUNT    5
+$COUNT    99
 $COUNTER  0x20
 $RETURN   0x21
 

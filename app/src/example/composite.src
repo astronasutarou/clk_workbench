@@ -1,4 +1,6 @@
-# Simplified detector readout sequence
+# Simplified readout for a one-dimensional integrating image sensor
+# Each frame performs a global reset and integration, then reads eight pixels
+# through a two-phase serial transfer and sample sequence
 $FRAME_COUNT    1
 $PIXEL_COUNT    7
 $FRAME_COUNTER  0x20
