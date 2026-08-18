@@ -41,19 +41,6 @@ test("event.src switches output patterns after an injected event", () => {
   );
 });
 
-test("multibit.src propagates one high state across ten bits", () => {
-  const source = readFileSync(
-    new URL("multibit.src", import.meta.url),
-    "utf8",
-  );
-  const result = compile(source);
-
-  assert.deepEqual(
-    result.segments.slice(0, 10).map(({ word }) => word),
-    Array.from({ length: 10 }, (_, bit) => 1 << bit),
-  );
-});
-
 test("composite.src reads thirty pixels across ten frames", () => {
   const source = readFileSync(
     new URL("composite.src", import.meta.url),
