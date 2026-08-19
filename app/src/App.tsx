@@ -3,31 +3,50 @@ import {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   memo,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import {
-  ClockEvent,
-  compile,
-  DEFAULT_STEP_LIMIT,
-  Segment,
-  validateEventCommand,
-} from "./lib/clk";
+import { validateEventCommand, type ClockEvent } from "./lib/clk";
 import { EXAMPLES } from "./example";
 import { shouldActivateEventTrack } from "./lib/event-ui";
+import { instanceForTick as resolveInstanceForTick } from "./lib/output-sequence";
 import {
-  BitRun,
-  buildBitRuns,
+  DEFAULT_MAX_WAVEFORM_TICKS,
+  MAX_WAVEFORM_TICKS,
+  SIMULATION_DEBOUNCE_MS,
+  normalizeMaximumWaveformTicks,
+  type SimulationResponse,
+  type SimulationViewResult,
+} from "./lib/simulation";
+import {
   buildWaveformGeometry,
   getMinimumViewSpan,
   getWaveformChunks,
   getWaveformRenderRange,
   isTimelinePointerX,
+  type BitRun,
 } from "./lib/waveform";
 
 const WAVE_LABEL_WIDTH = 82;
+
+const EMPTY_RESULT: SimulationViewResult = {
+  activeBits: Array.from({ length: 8 }, (_, bit) => 7 - bit),
+  bitRuns: [],
+  diagnostics: [],
+  halted: false,
+  instanceRanges: [],
+  outputRows: 0,
+  outputSequence: [],
+  outputSequenceEntries: 0,
+  outputSequenceTruncated: false,
+  program: null,
+  steps: 0,
+  stopReason: "program-end",
+  ticks: 0,
+};
 
 type WaveformChunkProps = {
   runs: BitRun[];
@@ -82,47 +101,15 @@ const WaveformChunk = memo(function WaveformChunk({
   );
 });
 
-type AggregatedSegment = Segment & { count: number; first: boolean };
-function aggregateSingleRowPatternRuns(
-  segments: Segment[],
-): AggregatedSegment[] {
-  const invocations: { pattern: string; rows: Segment[] }[] = [];
-  for (const segment of segments) {
-    const last = invocations[invocations.length - 1];
-    if (!last || last.rows[0].instance !== segment.instance)
-      invocations.push({ pattern: segment.pattern, rows: [segment] });
-    else last.rows.push(segment);
-  }
-  const runs: { pattern: string; rows: Segment[]; count: number }[] = [];
-  for (const invocation of invocations) {
-    const last = runs[runs.length - 1];
-    const isSingleRow = invocation.rows.length === 1;
-    if (
-      isSingleRow &&
-      last &&
-      last.rows.length === 1 &&
-      last.pattern === invocation.pattern
-    )
-      last.count++;
-    else runs.push({ ...invocation, count: 1 });
-  }
-  return runs.flatMap((run) =>
-    run.rows.map((row, i) => ({
-      ...row,
-      duration: row.duration * run.count,
-      count: run.count,
-      first: i === 0,
-    })),
-  );
-}
-
 export default function App() {
   const [source, setSource] = useState(EXAMPLES[0].source),
     [fileName, setFileName] = useState<string>(EXAMPLES[0].name),
     [viewSpan, setViewSpan] = useState<number | null>(null),
     [viewStart, setViewStart] = useState(0),
     [labelOffset, setLabelOffset] = useState(0),
-    [stepLimit, setStepLimit] = useState(DEFAULT_STEP_LIMIT),
+    [maxWaveformTicks, setMaxWaveformTicks] = useState(
+      DEFAULT_MAX_WAVEFORM_TICKS,
+    ),
     [tab, setTab] = useState<"wave" | "segments">("wave"),
     [sourceScroll, setSourceScroll] = useState(0),
     [waveTrackWidth, setWaveTrackWidth] = useState(1000),
@@ -136,41 +123,76 @@ export default function App() {
     [events, setEvents] = useState<ClockEvent[]>([]),
     [eventDraft, setEventDraft] = useState<
       (ClockEvent & { error: string; originalTick: number | null }) | null
-    >(null);
+    >(null),
+    [result, setResult] = useState<SimulationViewResult>(EMPTY_RESULT),
+    [simulating, setSimulating] = useState(true);
   const input = useRef<HTMLInputElement>(null),
     exampleMenu = useRef<HTMLDetailsElement>(null),
     waveScroll = useRef<HTMLDivElement>(null),
     pendingStart = useRef<number | null>(null),
-    result = useMemo(
-      () => compile(source, labelOffset, stepLimit, events),
-      [source, labelOffset, stepLimit, events],
-    );
-  const displaySegments = useMemo(
-    () => aggregateSingleRowPatternRuns(result.segments),
-    [result.segments],
-  );
-  const total = displaySegments.reduce((n, s) => n + s.duration, 0),
+    simulationRequest = useRef(0);
+  useEffect(() => {
+    const id = ++simulationRequest.current;
+    let worker: Worker | null = null;
+    setSimulating(true);
+    const timer = window.setTimeout(() => {
+      worker = new Worker(new URL("./simulation.worker.ts", import.meta.url), {
+        type: "module",
+      });
+      worker.onmessage = ({ data }: MessageEvent<SimulationResponse>) => {
+        if (data.id !== simulationRequest.current) return;
+        if ("error" in data) {
+          setResult({
+            ...EMPTY_RESULT,
+            diagnostics: [{ line: 1, severity: "error", message: data.error }],
+            stopReason: "error",
+          });
+        } else setResult(data.result);
+        setSimulating(false);
+        worker?.terminate();
+        worker = null;
+      };
+      worker.onerror = () => {
+        if (id !== simulationRequest.current) return;
+        setResult({
+          ...EMPTY_RESULT,
+          diagnostics: [
+            {
+              line: 1,
+              severity: "error",
+              message: "Simulation worker failed",
+            },
+          ],
+          stopReason: "error",
+        });
+        setSimulating(false);
+        worker?.terminate();
+        worker = null;
+      };
+      worker.postMessage({
+        id,
+        events,
+        labelOffset,
+        maxTicks: maxWaveformTicks,
+        source,
+      });
+    }, SIMULATION_DEBOUNCE_MS);
+    return () => {
+      window.clearTimeout(timer);
+      worker?.terminate();
+    };
+  }, [events, labelOffset, maxWaveformTicks, source]);
+  const total = result.ticks,
+    activeBits = result.activeBits,
+    outputSequence = result.outputSequence,
+    outputSequenceTruncated = result.outputSequenceTruncated,
     waveViewportWidth = waveTrackWidth + WAVE_LABEL_WIDTH,
     minSpan = getMinimumViewSpan(total, waveViewportWidth),
     effectiveSpan = total
       ? Math.min(total, Math.max(minSpan, viewSpan ?? total))
-      : 0,
-    activeBits = useMemo(() => {
-      let mask = 0;
-      displaySegments.forEach((s) => (mask |= s.word));
-      const bits = Array.from({ length: 32 }, (_, i) => 31 - i).filter(
-        (i) => ((mask >>> i) & 1) === 1,
-      );
-      return bits.length ? bits : Array.from({ length: 8 }, (_, i) => 7 - i);
-    }, [displaySegments]);
+      : 0;
   const rulerStep = Math.max(1, Math.round(effectiveSpan / 10)),
-    bitRuns = useMemo(
-      () =>
-        new Map(
-          activeBits.map((bit) => [bit, buildBitRuns(displaySegments, bit)]),
-        ),
-      [activeBits, displaySegments],
-    ),
+    bitRuns = useMemo(() => new Map(result.bitRuns), [result.bitRuns]),
     waveformChunks = useMemo(
       () => getWaveformChunks(total, viewStart, effectiveSpan),
       [effectiveSpan, total, viewStart],
@@ -337,16 +359,10 @@ export default function App() {
       center = rawStart + rawSpan / 2;
     setVisibleSpan(nextSpan, center - nextSpan / 2);
   };
-  const instanceForTick = (tick: number) => {
-    let cursor = 0;
-    for (const segment of result.segments) {
-      cursor += segment.duration;
-      if (tick < cursor) return segment.instance;
-    }
-    return result.segments.at(-1)?.instance ?? 0;
-  };
+  const instanceForTick = (tick: number) =>
+    resolveInstanceForTick(result.instanceRanges, tick);
   const openEventAtTick = (requestedTick: number) => {
-    if (!total || !result.segments.length) return;
+    if (simulating || !total || !result.instanceRanges.length) return;
     const tick = Math.min(total - 1, Math.max(0, Math.floor(requestedTick))),
       instance = instanceForTick(tick),
       existing = events.find((event) => event.instance === instance);
@@ -416,8 +432,16 @@ export default function App() {
         <h1>Clock Definition Workbench</h1>
         <div className="file-state">
           <span>{fileName}</span>
-          <span className={errors ? "pill error" : "pill valid"}>
-            {errors ? `${errors} errors` : "valid"}
+          <span
+            className={
+              simulating
+                ? "pill pending"
+                : errors
+                  ? "pill error"
+                  : "pill valid"
+            }
+          >
+            {simulating ? "updating" : errors ? `${errors} errors` : "valid"}
           </span>
         </div>
         <div className="actions">
@@ -463,7 +487,7 @@ export default function App() {
           <span>patterns</span>
         </div>
         <div>
-          <b>{displaySegments.length}</b>
+          <b>{result.outputRows.toLocaleString()}</b>
           <span>output rows</span>
         </div>
         <div>
@@ -472,17 +496,18 @@ export default function App() {
         </div>
         <div className="toolbar-spacer" />
         <label>
-          Step limit
+          Maximum waveform length
           <input
-            aria-label="Step limit"
+            className="maximum-waveform-length"
+            aria-label="Maximum waveform length"
             type="number"
             min="1"
-            max="1000000"
-            step="1000"
-            value={stepLimit}
+            max={MAX_WAVEFORM_TICKS}
+            step="10000"
+            value={maxWaveformTicks}
             onChange={(e) => {
-              setStepLimit(
-                Math.max(1, Math.min(1000000, Number(e.target.value) || 1)),
+              setMaxWaveformTicks(
+                normalizeMaximumWaveformTicks(Number(e.target.value)),
               );
               clearEvents();
             }}
@@ -619,9 +644,9 @@ export default function App() {
                   <button
                     type="button"
                     className="event-label"
-                    title="Add an event at an arbitrary tick"
+                    title="Add an event at tick 0"
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={openEventAtVisibleCenter}
+                    onClick={() => openEventAtTick(0)}
                   >
                     EVENT
                   </button>
@@ -819,7 +844,16 @@ export default function App() {
               )}
             </div>
           ) : (
-            <div className="sequence">
+            <div
+              className={`sequence ${outputSequenceTruncated ? "truncated" : ""}`}
+            >
+              {outputSequenceTruncated && (
+                <p className="sequence-truncation">
+                  Showing first {outputSequence.length.toLocaleString()} of{" "}
+                  {result.outputSequenceEntries.toLocaleString()} entries —
+                  truncated
+                </p>
+              )}
               <table>
                 <thead>
                   <tr>
@@ -830,7 +864,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displaySegments.map((s, i) => (
+                  {outputSequence.map((s, i) => (
                     <tr key={i}>
                       <td>{i}</td>
                       <td>
@@ -851,7 +885,7 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
-              {!displaySegments.length && (
+              {!outputSequence.length && (
                 <div className="empty">No output sequence</div>
               )}
             </div>
@@ -864,7 +898,7 @@ export default function App() {
           <span>
             {errors} errors · {warnings} warnings ·{" "}
             {result.steps.toLocaleString()} steps{" "}
-            {result.halted ? "· halted" : ""}
+            {simulating ? "· updating" : ""} {result.halted ? "· halted" : ""}
           </span>
         </div>
         {result.diagnostics.length ? (

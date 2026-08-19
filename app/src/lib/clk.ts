@@ -1,3 +1,8 @@
+import {
+  DEFAULT_MAX_WAVEFORM_TICKS,
+  MAX_EXECUTION_STEPS,
+} from "./simulation.ts";
+
 export type Diagnostic = {
   line: number;
   severity: "error" | "warning";
@@ -23,10 +28,22 @@ export type Result = {
   segments: Segment[];
   steps: number;
   halted: boolean;
+  ticks: number;
+  stopReason:
+    | "error"
+    | "halt"
+    | "program-end"
+    | "step-limit"
+    | "waveform-limit";
 };
 export type ClockEvent = { tick: number; instance: number; command: string };
 
-export const DEFAULT_STEP_LIMIT = 50_000;
+export type CompileOptions = {
+  events?: ClockEvent[];
+  labelOffset?: number;
+  maxSteps?: number;
+  maxTicks?: number;
+};
 
 const OPS: Record<
   string,
@@ -50,9 +67,12 @@ const numberValue = (s: string) =>
 
 export function compile(
   source: string,
-  labelOffset = 0,
-  stepLimit = DEFAULT_STEP_LIMIT,
-  events: ClockEvent[] = [],
+  {
+    events = [],
+    labelOffset = 0,
+    maxSteps = MAX_EXECUTION_STEPS,
+    maxTicks = DEFAULT_MAX_WAVEFORM_TICKS,
+  }: CompileOptions = {},
 ): Result {
   const diagnostics: Diagnostic[] = [],
     definitions = new Map<string, number>(),
@@ -210,6 +230,8 @@ export function compile(
       segments: [],
       steps: 0,
       halted: false,
+      ticks: 0,
+      stopReason: "error",
     };
   const program = { definitions, labels, patterns, instructions },
     eventInstructions = new Map<number, Instruction>();
@@ -220,11 +242,20 @@ export function compile(
     else eventInstructions.set(event.instance, parsed);
   });
   if (diagnostics.some((d) => d.severity === "error"))
-    return { diagnostics, program, segments: [], steps: 0, halted: false };
+    return {
+      diagnostics,
+      program,
+      segments: [],
+      steps: 0,
+      halted: false,
+      ticks: 0,
+      stopReason: "error",
+    };
   return execute(
     program,
     diagnostics,
-    Math.max(1, Math.floor(stepLimit)),
+    Math.max(1, Math.floor(maxSteps)),
+    Math.max(1, Math.floor(maxTicks)),
     eventInstructions,
   );
 }
@@ -302,7 +333,8 @@ function addRow(
 function execute(
   program: Program,
   diagnostics: Diagnostic[],
-  stepLimit: number,
+  maxSteps: number,
+  maxTicks: number,
   eventInstructions = new Map<number, Instruction>(),
 ): Result {
   const r = new Map<number, number>(),
@@ -310,7 +342,9 @@ function execute(
   let p = 0,
     steps = 0,
     halted = false,
-    instance = 0;
+    instance = 0,
+    ticks = 0,
+    waveformLimitReached = false;
   const value = (s: string) => program.definitions.get(s) ?? 0;
   const eventValue = (s: string) =>
     program.definitions.get(s) ?? numberValue(s);
@@ -371,8 +405,8 @@ function execute(
   while (
     p >= 0 &&
     p < program.instructions.length &&
-    steps < stepLimit &&
-    segments.length < 50000
+    steps < maxSteps &&
+    ticks < maxTicks
   ) {
     const ins = program.instructions[p],
       a = ins.args;
@@ -384,16 +418,36 @@ function execute(
       case "outp": {
         const pat = program.patterns.get(a[0])!,
           currentInstance = instance;
-        pat.rows.forEach((row) =>
-          segments.push({ ...row, pattern: a[0], instance: currentInstance }),
-        );
+        let outputComplete = true;
+        for (const row of pat.rows) {
+          const remaining = maxTicks - ticks;
+          if (remaining <= 0) {
+            outputComplete = false;
+            break;
+          }
+          const duration = Math.min(row.duration, remaining);
+          segments.push({
+            ...row,
+            duration,
+            pattern: a[0],
+            instance: currentInstance,
+          });
+          ticks += duration;
+          if (duration < row.duration) {
+            outputComplete = false;
+            break;
+          }
+        }
         instance++;
         p++;
-        const event = eventInstructions.get(currentInstance);
-        if (event && steps < stepLimit) {
+        const event = outputComplete
+          ? eventInstructions.get(currentInstance)
+          : undefined;
+        if (event && steps < maxSteps) {
           steps++;
           runEvent(event);
         }
+        if (ticks >= maxTicks) waveformLimitReached = true;
         break;
       }
       case "jump":
@@ -450,6 +504,13 @@ function execute(
         p++;
     }
   }
+  const stopReason: Result["stopReason"] = halted
+    ? "halt"
+    : waveformLimitReached || ticks >= maxTicks
+      ? "waveform-limit"
+      : steps >= maxSteps
+        ? "step-limit"
+        : "program-end";
   if (!halted)
     diagnostics.push({
       line:
@@ -457,9 +518,11 @@ function execute(
           ?.line ?? 1,
       severity: "warning",
       message:
-        steps >= stepLimit
-          ? `Execution paused after ${stepLimit.toLocaleString()} steps`
-          : "Execution ended without reaching halt",
+        stopReason === "waveform-limit"
+          ? `Waveform truncated at ${maxTicks.toLocaleString()} ticks`
+          : stopReason === "step-limit"
+            ? `Internal execution step limit reached after ${maxSteps.toLocaleString()} steps`
+            : "Execution ended without reaching halt",
     });
-  return { diagnostics, program, segments, steps, halted };
+  return { diagnostics, program, segments, steps, halted, ticks, stopReason };
 }

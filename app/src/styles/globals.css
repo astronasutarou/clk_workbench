@@ -77,6 +77,10 @@ header h1 {
   color: var(--red);
   background: #faeaea;
 }
+.pill.pending {
+  color: #526068;
+  background: #edf0ef;
+}
 .actions {
   display: flex;
   align-items: center;
@@ -370,6 +374,23 @@ header h1 {
   text-align: left;
   color: var(--muted);
   font-weight: normal;
+}
+.sequence.truncated th {
+  top: 34px;
+}
+.sequence-truncation {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  height: 34px;
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e6e9e8;
+  background: #fff8e8;
+  color: var(--amber);
+  font:
+    11px ui-monospace,
+    monospace;
 }
 .sequence th,
 .sequence td {

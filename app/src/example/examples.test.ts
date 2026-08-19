@@ -27,9 +27,10 @@ for (const fileName of EXAMPLE_FILES) {
 
 test("event.src switches output patterns after an injected event", () => {
   const source = readFileSync(new URL("event.src", import.meta.url), "utf8");
-  const result = compile(source, 0, 50_000, [
-    { tick: 0, instance: 0, command: "load $MODE 1" },
-  ]);
+  const result = compile(source, {
+    events: [{ tick: 0, instance: 0, command: "load $MODE 1" }],
+    maxTicks: 50_000,
+  });
 
   assert.deepEqual(
     result.diagnostics.filter(({ severity }) => severity === "error"),

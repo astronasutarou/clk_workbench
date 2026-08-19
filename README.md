@@ -5,7 +5,7 @@ Clock Definition Workbench parses and executes CLK definition files and displays
 ## Features
 
 - CLK definition editing, file loading, and diagnostics
-- Instruction execution with a configurable step limit
+- Debounced background simulation with a configurable maximum waveform length
 - Output sequence and per-bit waveform views
 - Tick-based zoom, range selection, and full-width display
 - Aggregation of consecutive single-word pattern outputs
