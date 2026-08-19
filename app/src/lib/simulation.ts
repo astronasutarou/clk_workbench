@@ -2,11 +2,11 @@ import type { ClockEvent, Diagnostic, Program } from "./clk";
 import type { AggregatedSegment, InstanceRange } from "./output-sequence";
 import type { BitRun } from "./waveform";
 
-export const DEFAULT_MAX_WAVEFORM_TICKS = 50_000;
-export const MAX_WAVEFORM_TICKS = 10_000_000;
+export const DEFAULT_MAX_WAVEFORM_TICKS = 1_000_000;
+export const MAX_WAVEFORM_TICKS = 1_000_000_000;
 export const MAX_EXECUTION_STEPS = 2 ** 30;
 export const OUTPUT_SEQUENCE_LIMIT = 10_000;
-export const SIMULATION_DEBOUNCE_MS = 200;
+export const SIMULATION_DEBOUNCE_MS = 250;
 
 export function normalizeMaximumWaveformTicks(value: number) {
   if (!Number.isFinite(value)) return DEFAULT_MAX_WAVEFORM_TICKS;
