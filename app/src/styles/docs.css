@@ -130,7 +130,7 @@ h3 {
 
 h1 {
   margin: 0;
-  font-size: clamp(43px, 6vw, 67px);
+  font-size: clamp(30px, 6vw, 50px);
   font-weight: 500;
   letter-spacing: -0.035em;
 }
