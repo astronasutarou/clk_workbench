@@ -1,6 +1,6 @@
-# Clock Definition Workbench
+# Clock Workbench
 
-Clock Definition Workbench parses and executes CLK definition files and displays the resulting 32-bit output as an output sequence and waveform. It targets current versions of Chrome and Firefox.
+Clock Workbench parses and executes CLK source files and displays the resulting 32-bit output as an output sequence and waveform. It targets current versions of Chrome and Firefox.
 
 ## Features
 
@@ -81,7 +81,7 @@ After the repository becomes public, enable GitHub Pages with **GitHub Actions**
 
 ## License
 
-Clock Definition Workbench is released under the MIT License. See [LICENSE](LICENSE).
+Clock Workbench is released under the MIT License. See [LICENSE](LICENSE).
 
 Licenses for software included in the distributed bundle are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
