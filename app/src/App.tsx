@@ -429,7 +429,7 @@ export default function App() {
   return (
     <main>
       <header>
-        <h1>Clock Definition Workbench</h1>
+        <h1>Clock Workbench</h1>
         <div className="file-state">
           <span>{fileName}</span>
           <span
