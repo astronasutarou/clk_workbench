@@ -116,7 +116,7 @@
 
 .event-track {
   position: relative;
-  cursor: crosshair;
+  cursor: copy;
 }
 
 .event-track:focus-visible {
