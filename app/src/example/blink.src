@@ -1,5 +1,5 @@
 # Repeated blink waveform
-$COUNT    99
+$COUNT    29
 $COUNTER  0x20
 
 load $COUNTER $COUNT
