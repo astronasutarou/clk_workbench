@@ -41,6 +41,10 @@
     monospace;
 }
 
+.toolbar input.maximum-waveform-length {
+  width: 108px;
+}
+
 .zoom output {
   display: inline;
   color: var(--ink);
@@ -95,8 +99,8 @@
   border-top: 0;
   border-bottom: 0;
   border-left: 0;
-  background: #edf7f3;
-  color: #357060;
+  background: #dff1ea;
+  color: #24594b;
   font:
     11px ui-monospace,
     monospace;
@@ -106,8 +110,8 @@
 
 .event-label:hover,
 .event-label:focus-visible {
-  background: #dff1ea;
-  color: #24594b;
+  background: #c8e5da;
+  color: #173f35;
 }
 
 .event-track {
