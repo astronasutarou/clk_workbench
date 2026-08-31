@@ -45,19 +45,14 @@ export type CompileOptions = {
   maxTicks?: number;
 };
 
-export const MAX_REGISTER_ADDRESS = 0xffff;
-
-const REGISTER_ADDRESS_RANGE = `0x0000–0x${MAX_REGISTER_ADDRESS.toString(16)
-  .toUpperCase()
-  .padStart(4, "0")}`;
-const registerRangeError = (symbol: string, address: number) =>
-  address < 0 || address > MAX_REGISTER_ADDRESS
-    ? `${symbol} is outside the register range ${REGISTER_ADDRESS_RANGE}`
-    : null;
+export const MAX_NUMERIC_VALUE = 0xffffffff;
 
 const OPS: Record<
   string,
-  { n: number; k: ("value" | "register" | "label" | "pattern")[] }
+  {
+    n: number;
+    k: ("address" | "value" | "register" | "label" | "pattern")[];
+  }
 > = {
   nop: { n: 0, k: [] },
   outp: { n: 1, k: ["pattern"] },
@@ -66,14 +61,29 @@ const OPS: Record<
   bjmp: { n: 2, k: ["register", "label"] },
   cjmp: { n: 2, k: ["register", "label"] },
   cmpz: { n: 2, k: ["register", "register"] },
-  load: { n: 2, k: ["register", "value"] },
-  copy: { n: 2, k: ["register", "register"] },
+  load: { n: 2, k: ["address", "value"] },
+  copy: { n: 2, k: ["address", "address"] },
   subj: { n: 2, k: ["register", "label"] },
   retn: { n: 1, k: ["register"] },
   halt: { n: 0, k: [] },
 };
 const numberValue = (s: string) =>
   /^(?:0x[0-9a-f]+|[0-9]+)$/i.test(s) ? Number(s) : NaN;
+const isUnsigned32 = (value: number) =>
+  Number.isInteger(value) && value >= 0 && value <= MAX_NUMERIC_VALUE;
+const resolveNumeric = (s: string, definitions: Map<string, number>) =>
+  definitions.get(s) ?? numberValue(s);
+const numericOperandError = (
+  operand: string,
+  definitions: Map<string, number>,
+  role: "Register address" | "Register value",
+) => {
+  if (operand.startsWith("$") && !definitions.has(operand))
+    return `Undefined numeric symbol: ${operand}`;
+  if (!isUnsigned32(resolveNumeric(operand, definitions)))
+    return `${role} must be an unsigned 32-bit integer`;
+  return null;
+};
 
 export function compile(
   source: string,
@@ -123,7 +133,7 @@ export function compile(
       }
       const n = numberValue(t[1]);
       if (definitions.has(t[0])) issue(i + 1, `Duplicate definition: ${t[0]}`);
-      else if (!Number.isInteger(n) || n < 0 || n > 0xffffffff)
+      else if (!isUnsigned32(n))
         issue(i + 1, "Value must be an unsigned 32-bit integer");
       else definitions.set(t[0], n);
       return;
@@ -223,10 +233,14 @@ export function compile(
         issue(ins.line, `Undefined command label: ${arg}`);
       if (kind === "pattern" && !patterns.has(arg))
         issue(ins.line, `Undefined pattern: ${arg}`);
-      if ((kind === "value" || kind === "register") && !definitions.has(arg))
+      if (kind === "register" && !definitions.has(arg))
         issue(ins.line, `Undefined numeric symbol: ${arg}`);
-      if (kind === "register" && definitions.has(arg)) {
-        const error = registerRangeError(arg, definitions.get(arg)!);
+      if (kind === "address" || kind === "value") {
+        const error = numericOperandError(
+          arg,
+          definitions,
+          kind === "address" ? "Register address" : "Register value",
+        );
         if (error) issue(ins.line, error);
       }
     });
@@ -290,22 +304,14 @@ function parseEventCommand(
       return `Undefined command label: ${arg}`;
     if (kind === "register" && !program.definitions.has(arg))
       return `Undefined numeric symbol: ${arg}`;
-    if (kind === "register") {
-      const error = registerRangeError(arg, program.definitions.get(arg) ?? 0);
+    if (kind === "address" || kind === "value") {
+      const error = numericOperandError(
+        arg,
+        program.definitions,
+        kind === "address" ? "Register address" : "Register value",
+      );
       if (error) return error;
     }
-    if (
-      kind === "value" &&
-      !program.definitions.has(arg) &&
-      !Number.isInteger(numberValue(arg))
-    )
-      return `Undefined value: ${arg}`;
-    if (
-      kind === "value" &&
-      Number.isInteger(numberValue(arg)) &&
-      (numberValue(arg) < 0 || numberValue(arg) > 0xffffffff)
-    )
-      return "Value must be an unsigned 32-bit integer";
   }
   return { line: 1, op, args: t };
 }
@@ -355,9 +361,8 @@ function execute(
     instance = 0,
     ticks = 0,
     waveformLimitReached = false;
-  const value = (s: string) => program.definitions.get(s) ?? 0;
-  const eventValue = (s: string) =>
-    program.definitions.get(s) ?? numberValue(s);
+  const address = (s: string) => resolveNumeric(s, program.definitions);
+  const registerValue = (s: string) => resolveNumeric(s, program.definitions);
   const runEvent = (ins: Instruction) => {
     const a = ins.args;
     switch (ins.op) {
@@ -367,10 +372,10 @@ function execute(
         p = program.labels.get(a[0])!;
         break;
       case "ajmp":
-        p = (r.get(value(a[0])) ?? 0) > 0 ? program.labels.get(a[1])! : p;
+        p = (r.get(address(a[0])) ?? 0) > 0 ? program.labels.get(a[1])! : p;
         break;
       case "bjmp": {
-        const k = value(a[0]),
+        const k = address(a[0]),
           v = r.get(k) ?? 0;
         if (v > 0) {
           r.set(k, 0);
@@ -379,7 +384,7 @@ function execute(
         break;
       }
       case "cjmp": {
-        const k = value(a[0]),
+        const k = address(a[0]),
           v = r.get(k) ?? 0;
         if (v > 0) {
           r.set(k, v - 1);
@@ -388,23 +393,23 @@ function execute(
         break;
       }
       case "cmpz": {
-        const x = value(a[0]),
-          y = value(a[1]);
+        const x = address(a[0]),
+          y = address(a[1]);
         if ((r.get(x) ?? 0) === (r.get(y) ?? 0)) r.set(x, 0);
         break;
       }
       case "load":
-        r.set(value(a[0]), eventValue(a[1]));
+        r.set(address(a[0]), registerValue(a[1]));
         break;
       case "copy":
-        r.set(value(a[0]), r.get(value(a[1])) ?? 0);
+        r.set(address(a[0]), r.get(address(a[1])) ?? 0);
         break;
       case "subj":
-        r.set(value(a[0]), p);
+        r.set(address(a[0]), p);
         p = program.labels.get(a[1])!;
         break;
       case "retn":
-        p = r.get(value(a[0])) ?? program.instructions.length;
+        p = r.get(address(a[0])) ?? program.instructions.length;
         break;
       case "halt":
         halted = true;
@@ -464,10 +469,11 @@ function execute(
         p = program.labels.get(a[0])!;
         break;
       case "ajmp":
-        p = (r.get(value(a[0])) ?? 0) > 0 ? program.labels.get(a[1])! : p + 1;
+        p =
+          (r.get(address(a[0])) ?? 0) > 0 ? program.labels.get(a[1])! : p + 1;
         break;
       case "bjmp": {
-        const k = value(a[0]),
+        const k = address(a[0]),
           v = r.get(k) ?? 0;
         if (v > 0) {
           r.set(k, 0);
@@ -476,7 +482,7 @@ function execute(
         break;
       }
       case "cjmp": {
-        const k = value(a[0]),
+        const k = address(a[0]),
           v = r.get(k) ?? 0;
         if (v > 0) {
           r.set(k, v - 1);
@@ -485,26 +491,26 @@ function execute(
         break;
       }
       case "cmpz": {
-        const x = value(a[0]),
-          y = value(a[1]);
+        const x = address(a[0]),
+          y = address(a[1]);
         if ((r.get(x) ?? 0) === (r.get(y) ?? 0)) r.set(x, 0);
         p++;
         break;
       }
       case "load":
-        r.set(value(a[0]), value(a[1]));
+        r.set(address(a[0]), registerValue(a[1]));
         p++;
         break;
       case "copy":
-        r.set(value(a[0]), r.get(value(a[1])) ?? 0);
+        r.set(address(a[0]), r.get(address(a[1])) ?? 0);
         p++;
         break;
       case "subj":
-        r.set(value(a[0]), p + 1);
+        r.set(address(a[0]), p + 1);
         p = program.labels.get(a[1])!;
         break;
       case "retn":
-        p = r.get(value(a[0])) ?? program.instructions.length;
+        p = r.get(address(a[0])) ?? program.instructions.length;
         break;
       case "halt":
         halted = true;
