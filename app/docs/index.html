@@ -146,9 +146,17 @@ START_BIT_DATA
           <div class="note">
             <strong>Numeric ranges.</strong> Definitions are unsigned 32-bit
             integers. A symbol used as a register address must resolve to
-            <code>0x0000</code>–<code>0x0FFF</code>. Normal reads of an
+            <code>0x0000</code>–<code>0xFFFF</code>. Normal reads of an
             unwritten register return zero; <code>retn</code> handles an
             unwritten return register as described below.
+          </div>
+
+          <div class="note">
+            <strong>Compatibility.</strong> The expanded register range is a
+            Clock Definition Workbench extension. The normalized CLK
+            specification and legacy implementation materials use
+            <code>0x0000</code>–<code>0x0FFF</code>; compatibility above that
+            range depends on the target compiler and hardware.
           </div>
         </section>
 

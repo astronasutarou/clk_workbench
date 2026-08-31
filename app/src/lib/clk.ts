@@ -45,6 +45,16 @@ export type CompileOptions = {
   maxTicks?: number;
 };
 
+export const MAX_REGISTER_ADDRESS = 0xffff;
+
+const REGISTER_ADDRESS_RANGE = `0x0000–0x${MAX_REGISTER_ADDRESS.toString(16)
+  .toUpperCase()
+  .padStart(4, "0")}`;
+const registerRangeError = (symbol: string, address: number) =>
+  address < 0 || address > MAX_REGISTER_ADDRESS
+    ? `${symbol} is outside the register range ${REGISTER_ADDRESS_RANGE}`
+    : null;
+
 const OPS: Record<
   string,
   { n: number; k: ("value" | "register" | "label" | "pattern")[] }
@@ -215,12 +225,10 @@ export function compile(
         issue(ins.line, `Undefined pattern: ${arg}`);
       if ((kind === "value" || kind === "register") && !definitions.has(arg))
         issue(ins.line, `Undefined numeric symbol: ${arg}`);
-      if (
-        kind === "register" &&
-        definitions.has(arg) &&
-        (definitions.get(arg) ?? 0) > 0xfff
-      )
-        issue(ins.line, `${arg} is outside the register range 0x0000–0x0FFF`);
+      if (kind === "register" && definitions.has(arg)) {
+        const error = registerRangeError(arg, definitions.get(arg)!);
+        if (error) issue(ins.line, error);
+      }
     });
   });
   if (diagnostics.some((d) => d.severity === "error"))
@@ -282,8 +290,10 @@ function parseEventCommand(
       return `Undefined command label: ${arg}`;
     if (kind === "register" && !program.definitions.has(arg))
       return `Undefined numeric symbol: ${arg}`;
-    if (kind === "register" && (program.definitions.get(arg) ?? 0) > 0xfff)
-      return `${arg} is outside the register range 0x0000–0x0FFF`;
+    if (kind === "register") {
+      const error = registerRangeError(arg, program.definitions.get(arg) ?? 0);
+      if (error) return error;
+    }
     if (
       kind === "value" &&
       !program.definitions.has(arg) &&
