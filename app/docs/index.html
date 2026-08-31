@@ -100,8 +100,9 @@ START_BIT_DATA
                   <td><code>$NAME</code></td>
                   <td>
                     Numeric symbol. A definition uses
-                    <code>$NAME VALUE</code>. Register operands use the
-                    symbol's value as an address.
+                    <code>$NAME VALUE</code>. It is an alias for an unsigned
+                    32-bit integer and can be used where an instruction expects
+                    a register address or value.
                   </td>
                 </tr>
                 <tr>
@@ -120,8 +121,8 @@ START_BIT_DATA
                 <tr>
                   <td><code>VALUE</code></td>
                   <td>
-                    Unsigned decimal or hexadecimal integer. Hexadecimal values
-                    use the <code>0x</code> prefix.
+                    Unsigned 32-bit decimal or hexadecimal integer. Hexadecimal
+                    values use the <code>0x</code> prefix.
                   </td>
                 </tr>
                 <tr>
@@ -144,19 +145,21 @@ START_BIT_DATA
           </div>
 
           <div class="note">
-            <strong>Numeric ranges.</strong> Definitions are unsigned 32-bit
-            integers. A symbol used as a register address must resolve to
-            <code>0x0000</code>–<code>0xFFFF</code>. Normal reads of an
-            unwritten register return zero; <code>retn</code> handles an
-            unwritten return register as described below.
+            <strong>Numeric ranges.</strong> Numeric definitions, register
+            addresses, and register contents are unsigned 32-bit integers in
+            the range <code>0</code>–<code>0xFFFFFFFF</code>. Normal reads of
+            an unwritten register return zero; <code>retn</code> handles an
+            unwritten return register as described below. Pattern durations
+            follow the separate rules described under Pattern directives.
           </div>
 
           <div class="note">
-            <strong>Compatibility.</strong> The expanded register range is a
-            Clock Definition Workbench extension. The normalized CLK
-            specification and legacy implementation materials use
-            <code>0x0000</code>–<code>0x0FFF</code>; compatibility above that
-            range depends on the target compiler and hardware.
+            <strong>Compatibility.</strong> The unsigned 32-bit register
+            address space is a Clock Definition Workbench extension. The
+            normalized CLK specification and legacy implementation materials
+            use <code>0x0000</code>–<code>0x0FFF</code>; compatibility above
+            that range depends on the target compiler, hardware, and host
+            register interface.
           </div>
         </section>
 
@@ -180,8 +183,10 @@ START_BIT_DATA
           <h2>Instruction reference</h2>
           <p>
             <code>R[$REG]</code> denotes the register whose address is defined
-            by <code>$REG</code>. <code>PC</code> is the instruction address
-            that will execute next.
+            by <code>$REG</code>. In <code>load</code> and <code>copy</code>,
+            an address or value may be written as either a numeric symbol or a
+            decimal/hexadecimal literal. <code>PC</code> is the instruction
+            address that will execute next.
           </p>
 
           <div class="table-wrap instruction-table">
@@ -240,17 +245,20 @@ START_BIT_DATA
                   </td>
                 </tr>
                 <tr id="load">
-                  <td><code>load $REG $VALUE</code></td>
+                  <td><code>load ADDRESS VALUE</code></td>
                   <td>
-                    Stores the value of the numeric symbol
-                    <code>$VALUE</code> in <code>R[$REG]</code>, then advances.
+                    Stores <code>VALUE</code> in the register at
+                    <code>ADDRESS</code>, then advances. Both operands accept a
+                    numeric symbol or an integer literal.
                   </td>
                 </tr>
                 <tr id="copy">
-                  <td><code>copy $DEST $SOURCE</code></td>
+                  <td><code>copy DESTINATION SOURCE</code></td>
                   <td>
-                    Copies <code>R[$SOURCE]</code> to <code>R[$DEST]</code>,
-                    then advances.
+                    Copies the register at <code>SOURCE</code> to the register
+                    at <code>DESTINATION</code>, then advances. Both operands
+                    accept a numeric symbol or an integer literal;
+                    <code>SOURCE</code> is an address, not an immediate value.
                   </td>
                 </tr>
                 <tr id="subj">
@@ -290,9 +298,9 @@ START_BIT_DATA
             <strong>Waveform events.</strong> An event accepts exactly one
             non-output instruction and runs it once immediately after the
             selected <code>outp</code>. Events cannot contain
-            <code>outp</code> or define labels. For an event only,
-            <code>load</code> also accepts an immediate decimal or hexadecimal
-            value, such as <code>load $COUNTER 0x10</code>.
+            <code>outp</code> or define labels. Event and Source
+            <code>load</code>/<code>copy</code> commands use the same numeric
+            symbol and literal operand rules.
           </div>
         </section>
 
