@@ -1,6 +1,6 @@
-# CLK Studio
+# CLK Workbench
 
-CLK Studio parses and executes CLK source files and displays the resulting 32-bit output as an output sequence and waveform. It targets current versions of Chrome and Firefox.
+CLK Workbench parses and executes CLK source files and displays the resulting 32-bit output as an output sequence and waveform. It targets current versions of Chrome and Firefox.
 
 ## Features
 
@@ -81,7 +81,7 @@ After the repository becomes public, enable GitHub Pages with **GitHub Actions**
 
 ## License
 
-CLK Studio is released under the MIT License. See [LICENSE](LICENSE).
+CLK Workbench is released under the MIT License. See [LICENSE](LICENSE).
 
 Licenses for software included in the distributed bundle are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
