@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Clock Workbench includes the following third-party software in its distributed JavaScript bundle:
+CLK Workbench includes the following third-party software in its distributed JavaScript bundle:
 
 - React 19.2.6
 - React DOM 19.2.6
